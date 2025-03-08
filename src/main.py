@@ -1,9 +1,7 @@
-import json
 import os
 import discord
 from dotenv import load_dotenv
 from discord.ext import commands
-import requests
 from record import *
 from functions import *
 from magics import *
