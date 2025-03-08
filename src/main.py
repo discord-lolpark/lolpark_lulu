@@ -24,6 +24,9 @@ async def on_ready():
 async def find_record(interaction: discord.Interaction, member: discord.Member = None):
     await interaction.response.defer()
 
+    if interaction.channel_id != 1347946316902436864:
+        return
+
     if member is None:
         member = interaction.user
 
