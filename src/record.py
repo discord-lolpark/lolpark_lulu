@@ -1,7 +1,7 @@
 import sqlite3
 import discord
 
-matches_db = f"database/matches.db"
+matches_db = f"/database/matches.db"
 
 def get_champions_by_lane_with_winrate(summoner_id):
     conn = sqlite3.connect(matches_db)
