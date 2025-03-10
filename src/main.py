@@ -87,6 +87,34 @@ async def 임시전적(ctx, member: discord.Member = None):
     await ctx.send(result_str)
 
 
+@bot.command()
+@commands.has_role("LOLPARK PREMIUM")
+async def 모스트밴(ctx):
+
+    id = ctx.author.id
+
+    await ctx.send(get_most_banned_text())
+
+
+@bot.command()
+@commands.has_role("LOLPARK PREMIUM")
+async def 라인별밴(ctx, member: discord.Member = None):
+
+    if member is None:
+        member = ctx.author
+
+    await ctx.send(get_banned_by_lane_text(member))
+
+
+
+
+@bot.command()
+@commands.is_owner()
+async def 죽어라마술사(ctx):
+    await ctx.send("아.")
+    await bot.close()
+
+
 # 명령어 에러 처리
 @bot.event
 async def on_command_error(ctx, error):

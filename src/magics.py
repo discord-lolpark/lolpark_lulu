@@ -1,6 +1,6 @@
 import discord
 from record import *
-from functions import convert_channel_id_to_name
+from functions import convert_channel_id_to_name, get_full_champion_kor_name
 
 
 # 승률 계산
@@ -77,3 +77,51 @@ def get_summarized_record_text(user: discord.member):
     result_text += get_channel_record_message(record_by_channel, channel_name="TWENTY")
     
     return result_text
+
+
+# 모스트 밴 TOP 50 text
+def get_most_banned_text():
+    
+    banned_champions = get_most_banned_champions()
+    total_games = get_total_games()
+
+    most_banned_text = f"## 가장 많이 밴 된 챔피언 TOP 50 \n\n"
+
+    for rank, champ in enumerate(banned_champions, start=1):
+        most_banned_text += (f"{rank}위. {get_full_champion_kor_name(champ['champion'])} : {champ['ban_count']}회, ( {round(champ['ban_count'] / total_games * 100, 2)}% )\n")
+        if rank >= 50:
+            break
+
+    return most_banned_text
+
+
+# 유저 라인별 밴 당한 리스트 출력:
+def get_banned_by_lane_text(user: discord.Member):
+
+    from functions import get_champions_per_line, get_nickname
+
+    id = user.id
+
+    banned_by_lane_result = get_banned_champions_by_position(id)
+
+    banned_by_lane_text = f"## {get_nickname(user)}님의 라인별 밴 당한 챔피언 목록\n\n"
+
+    for row in banned_by_lane_result:
+        position_eng, champion, ban_count, _ = row
+
+        position = "탑" if position_eng == "top" \
+            else "정글" if position_eng == "jungle" \
+            else "미드" if position_eng == "mid" \
+            else "원딜" if position_eng == "bot" \
+            else "서폿"
+        
+        champion_per_line = get_champions_per_line(position_eng)
+
+        if champion == "Total Games":
+            banned_by_lane_text += (f"\n### {position} 게임 수: {ban_count}\n\n")
+            banned_by_lane_text += f"{position} 선택 시 밴당한 {position} 챔피언 목록\n\n"
+        else:
+            if champion in champion_per_line:
+                banned_by_lane_text += (f" {get_full_champion_kor_name(champion)} - {ban_count}회\n")
+
+    return banned_by_lane_text
