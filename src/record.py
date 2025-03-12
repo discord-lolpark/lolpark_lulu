@@ -1,7 +1,7 @@
 import sqlite3
 import discord
 
-matches_db = f"database/matches.db"
+matches_db = f"/database/matches.db"
 
 
 # 총 게임 수 가져오기

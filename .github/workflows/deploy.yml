@@ -43,6 +43,6 @@ jobs:
         
           sudo docker run -d -p 83:80 --name magician-container \
             -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} \
-            -v /home/ec2-user/database/matches.db:database/matches.db \
+            -v /home/ec2-user/database/matches.db:/database/matches.db \
             magician-image
         EOF
