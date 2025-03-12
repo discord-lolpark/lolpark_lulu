@@ -187,6 +187,27 @@ def get_nickname_without_tag(member):
     return get_nickname(member).split('#')[0].strip()
 
 
+# member로부터 `티어, 점수(티어단계)` 가져오기 (영어로)
+def get_tier(member):
+    display_tier = member.display_name.split('/')[1].strip().lstrip('🔺🔻')
+    level = display_tier[:2].upper() if display_tier.startswith('GM') or display_tier.startswith('gm') else display_tier[0].upper()
+    score = int(display_tier[2:] if level == 'GM' else display_tier[1:])
+
+    tier_fullname = {
+        'C': 'challenger',
+        'GM': 'grandmaster',
+        'M': 'master',
+        'D': 'diamond',
+        'E': 'emerald',
+        'P': 'platinum',
+        'G': 'gold',
+        'S': 'silver',
+        'B': 'bronze',
+        'I': 'iron',
+    }
+    return tier_fullname.get(level, 'unranked'), score
+
+
 def get_full_champion_eng_name(champion_kor):
     for key, values in lol_champion_korean_dict.items():
         if champion_kor in values:

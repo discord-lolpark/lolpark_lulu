@@ -125,3 +125,20 @@ def get_banned_by_lane_text(user: discord.Member):
                 banned_by_lane_text += (f" {get_full_champion_kor_name(champion)} - {ban_count}회\n")
 
     return banned_by_lane_text
+
+
+# 모스트 픽 TOP 50 text
+def get_most_picked_text():
+    
+    picked_champions = get_most_picked_champions()
+    total_games = get_total_games()
+
+    most_picked_text = f"## 가장 많이 밴 된 챔피언 TOP 50 \n\n"
+
+    for rank, champ in enumerate(picked_champions, start=1):
+        most_picked_text += (f"{rank}위. {get_full_champion_kor_name(champ['champion'])} : {champ['pick_count']}회, ( {round(champ['pick_count'] / total_games * 100, 2)}% )\n")
+        if rank >= 50:
+            break
+
+    return most_picked_text
+

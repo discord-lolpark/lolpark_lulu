@@ -201,3 +201,32 @@ def get_banned_champions_by_position(summoner_id):
     conn.close()
 
     return result
+
+
+# 모스트 픽 가져오기 (TOP 50)
+def get_most_picked_champions():
+    conn = sqlite3.connect(matches_db)
+    cursor = conn.cursor()
+
+    query = '''
+    WITH TotalGames AS (
+        SELECT COUNT(*) AS total_games FROM GAMES
+    ),
+    ChampionPicks AS (
+        SELECT P.champion, COUNT(*) AS pick_count
+        FROM PICKS P
+        GROUP BY P.champion
+    )
+    SELECT 
+        CP.champion, 
+        CP.pick_count
+    FROM ChampionPicks CP
+    ORDER BY CP.pick_count DESC;
+    '''
+
+    cursor.execute(query)
+    result = cursor.fetchall()
+
+    conn.close()
+
+    return result

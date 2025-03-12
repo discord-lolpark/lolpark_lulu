@@ -6,6 +6,7 @@ from record import *
 from functions import *
 from magics import *
 from bot import bot
+from lolpark_premium import lolpark_premium
 
 # 테스트 할때 아래 사용
 load_dotenv()
@@ -28,45 +29,34 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     if member is None:
         member = interaction.user
 
-    profile_embed = discord.Embed(
-        title=f"[ LOLPARK 2025 SPRING SEASON ]",
-        description=get_summarized_record_text(member),
-        color=discord.Color.pink()
-    )
+    lolpark_premium_role = discord.utils.get(member.roles, name='LOLPARK PREMIUM')
 
-    icon_url = member.avatar.url if member.avatar else member.default_avatar.url
-    profile_embed.set_author(name=get_nickname(member), icon_url=icon_url)
+    if lolpark_premium_role:
+        profile = await lolpark_premium(member)
 
-    await interaction.followup.send(embed=profile_embed)
+        buffer = io.BytesIO()
+        profile.save(buffer, format='PNG')
+        buffer.seek(0)
+
+        await interaction.followup.send(file=discord.File(buffer, filename=f"{member.id}_profile.png"))
+    else:
+        profile_embed = discord.Embed(
+            title=f"[ LOLPARK 2025 SPRING SEASON ]",
+            description=get_summarized_record_text(member),
+            color=discord.Color.pink()
+        )
+
+        icon_url = member.avatar.url if member.avatar else member.default_avatar.url
+        profile_embed.set_author(name=get_nickname(member), icon_url=icon_url)
+
+        await interaction.followup.send(embed=profile_embed)
 
 
 @bot.command()
-@commands.is_owner()
-async def 상세전적(ctx, member: discord.Member = None):
+@commands.has_role("LOLPARK PREMIUM")
+async def 상세전적(ctx):    
 
-    if member is None:
-        member = ctx.author
-
-    id = member.id
-    lane_stats = get_champions_by_lane_with_winrate(id)
-
-    result_str = f"# {get_nickname(member)} 상세 전적\n"
-
-    for line, stats in lane_stats.items():
-        line_eng_to_kor = {
-            "top": "탑",
-            "jungle": "정글",
-            "mid": "미드",
-            "bot": "원딜",
-            "support": "서폿"
-        }
-        result_str += f"\n## {line_eng_to_kor[line]}\n\n"
-        for index, stat in enumerate(stats, start=1):
-            if index <= 3:
-                result_str += f"### "
-            result_str += f"{index}. {get_full_champion_kor_name(stat['champion'])}: {stat['total_games']}전 {stat['wins']}승 {stat['loses']}패 (승률 {stat['win_rate']}%)\n"
-
-    await ctx.send(result_str)
+    await lolpark_premium.lolpark_premium(ctx, ctx.author)
 
 
 @bot.command()
