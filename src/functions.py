@@ -179,6 +179,8 @@ lol_champion_korean_dict = {
 
 # display_name으로부터 `닉네임#태그` 가져오기
 def get_nickname(member):
+    if member is None:
+        return '~~롤파크에 더 이상 존재하지 않는 소환사~~'
     return member.display_name.split('/')[0].strip()
 
 
