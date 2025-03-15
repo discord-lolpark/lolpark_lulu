@@ -96,6 +96,27 @@ async def 라인별밴(ctx, member: discord.Member = None):
     await ctx.send(get_banned_by_lane_text(member))
 
 
+@bot.command()
+@commands.has_role("관리자")
+async def 내전정보(ctx, match_id: int):
+
+    match_summoner_ids = get_summoners_by_match(match_id)
+
+    lolpark = bot.get_guild(1287065134652457020)
+
+    match_text = f'## 내전 #{match_id}에 참여한 소환사 목록입니다.\n\n'
+
+    match_text += f'### 1팀\n\n'
+    for id in match_summoner_ids['team_1']:
+        match_text += f'{get_nickname(lolpark.get_member(id))}\n'
+    
+    match_text += f'\n### 2팀\n\n'
+    for id in match_summoner_ids['team_2']:
+        match_text += f'{get_nickname(lolpark.get_member(id))}\n'
+
+    await ctx.send(match_text)
+
+
 
 
 @bot.command()

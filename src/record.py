@@ -230,3 +230,24 @@ def get_most_picked_champions():
     conn.close()
 
     return result
+
+
+# match_id로 내전에 참여한 소환사들의 id 불러오기
+def get_summoners_by_match(match_id):
+    conn = sqlite3.connect(matches_db)
+    cursor = conn.cursor()
+
+    query = '''
+    SELECT DISTINCT summoner_id, team_name 
+    FROM PICKS 
+    WHERE match_id = ?;
+    '''
+    
+    cursor.execute(query, (match_id,))
+    data = cursor.fetchall()
+    
+    team_1 = [row[0] for row in data if row[1] == 'team_1']
+    team_2 = [row[0] for row in data if row[1] == 'team_2']
+    
+    conn.close()
+    return {'team_1': team_1, 'team_2': team_2}
