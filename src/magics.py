@@ -109,6 +109,9 @@ def get_banned_by_lane_text(user: discord.Member):
     for row in banned_by_lane_result:
         position_eng, champion, ban_count, _ = row
 
+        if ban_count == 0:
+            continue
+
         position = "탑" if position_eng == "top" \
             else "정글" if position_eng == "jungle" \
             else "미드" if position_eng == "mid" \
@@ -142,3 +145,34 @@ def get_most_picked_text():
 
     return most_picked_text
 
+
+# 유저 라인별 밴 당한 리스트 출력:
+def get_picked_by_lane_text(user: discord.Member):
+
+    from functions import get_champions_per_line, get_nickname
+
+    id = user.id
+
+    picked_by_lane_result = get_picked_champions_by_position(id)
+
+    picked_by_lane_text = f"## {get_nickname(user)}님의 라인별 픽한 챔피언 목록\n\n"
+
+    for row in picked_by_lane_result:
+        position_eng, champion, pick_count, _ = row
+
+        if pick_count == 0:
+            continue
+
+        position = "탑" if position_eng == "top" \
+            else "정글" if position_eng == "jungle" \
+            else "미드" if position_eng == "mid" \
+            else "원딜" if position_eng == "bot" \
+            else "서폿"
+
+        if champion == "Total Games":
+            picked_by_lane_text += (f"\n### {position} 게임 수: {pick_count}\n\n")
+            picked_by_lane_text += f"{position}에서 픽한 챔피언 목록\n\n"
+        else:
+            picked_by_lane_text += (f" {get_full_champion_kor_name(champion)} - {pick_count}회\n")
+
+    return picked_by_lane_text

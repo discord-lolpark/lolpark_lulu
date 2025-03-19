@@ -4,7 +4,15 @@ import aiohttp
 import io
 
 w = 1500
-h = 400
+h = 1000
+
+# font_path들 모음
+font_paths = {
+    'cookierun': 'assets/fonts/CookieRun.ttf',
+    'notosans': 'assets/fonts/NoToSansKR.ttf',
+    'ownglyph': 'assets/fonts/Ownglyph.ttf',
+    'pyeongchang': 'assets/fonts/pyeongchang.ttf'
+}
 
 
 # 승률 계산
@@ -47,12 +55,17 @@ async def get_lolpark_premium_profile(member: discord.Member):
     # 통산 전적 textbox
     full_record_textbox = get_full_record_textbox(member)
 
+    # 모스트 픽
+    most_pick_image = get_most_pick_images(member)
+
     # 각 이미지들 paste
     profile.paste(profile_image, (padding, padding))
     profile.paste(nickname_textbox, (padding + padding // 2 + profile_image.width, padding - 10))
     profile.paste(tier_image, (padding * 2 + profile_image.width + nickname_textbox.width, padding))
 
     profile.paste(full_record_textbox, (padding, padding * 2 + 100))
+
+    profile.paste(most_pick_image, (padding, 350))
 
     return profile
 
@@ -89,6 +102,38 @@ async def get_profile_image(member:discord.Member):
     background.paste(rounded_profile_image, (0, 0), rounded_profile_image)
 
     return rounded_profile_image
+
+
+# 텍스트박스 가져오기
+def get_textbox(x: int, y: int, text: str, font_path: str, max_font_size=200, min_font_size=10, padding=10, font_color='white', background_color='skyblue'):
+
+    textbox_image = Image.new('RGB', (x, y), background_color)
+    draw = ImageDraw.Draw(textbox_image)
+    font_size = max_font_size
+
+    while font_size >= min_font_size:
+        font = ImageFont.truetype(font_path, font_size)
+        # textsize() → textbbox()로 변경
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_x = bbox[2] - bbox[0]
+        text_y = bbox[3] - bbox[1]
+
+        # 텍스트가 박스 안에 들어가면 폰트 크기 확정
+        if text_x <= x - padding * 2 and text_y <= y:
+            break
+        font_size -= 2  # 폰트 크기를 줄이면서 확인
+
+    # 텍스트 위치 중앙 정렬
+    text_x = (x - text_x) // 2
+    text_y = (y - text_y) // 2
+
+    # 텍스트 박스 그리기 (배경색)
+    draw.rectangle([0, 0, x * 2, y * 2], fill=background_color)
+
+    # 텍스트 추가
+    draw.text((text_x, text_y), text, fill=font_color, font=font)
+
+    return textbox_image
 
 
 def get_nickname_textbox(member: discord.Member):
@@ -252,3 +297,66 @@ def get_full_record_textbox(member):
     draw.text((0, 0), full_record_text, fill='black', font=full_record_font)
     
     return record_textbox_image
+
+
+# 모스트 픽 top 5 나열
+def get_most_pick_images(member):
+
+    from record import get_most_picked_champions
+    from functions import get_full_champion_kor_name
+
+    most_x = 700
+    most_y = 1000
+
+    most_pick_image = Image.new('RGB', (most_x, most_y), 'skyblue')
+
+    most_pick_list = get_most_picked_champions(member.id)
+
+    title_text = get_textbox(700, 100, text='MOST PICK', font_path=font_paths["pyeongchang"], max_font_size=50, padding=200, font_color='black')
+
+    most_pick_image.paste(title_text, (0, 0))
+
+    def get_champion_profile_image(champion, games, win, lose, win_rate):
+        
+        champion_profile_img = Image.new('RGB', (700, 150), 'skyblue')
+
+        champion_kor = get_full_champion_kor_name(champion)
+
+        champion_img = Image.open(f"assets/champions/square/{champion}.png").resize((100, 100), Image.Resampling.LANCZOS)
+
+        champion_name_textbox = get_textbox(x=100, y=40, text=champion_kor, font_path=font_paths["ownglyph"], max_font_size=50, min_font_size=5, padding=5, font_color='black')
+
+        result_textbox = get_textbox(x=550, y=100, text=f'{games}전 {win}승 {lose}패 ({win_rate}%)', font_path=font_paths["cookierun"])
+
+        champion_profile_img.paste(champion_img, (0, 0))
+        champion_profile_img.paste(champion_name_textbox, (0, 100))
+        champion_profile_img.paste(result_textbox, (150, 0))
+
+        return champion_profile_img
+    
+    for index, champion_result in enumerate(most_pick_list):
+
+        if index == 5:
+            break
+
+        champion, games, win, lose, win_rate = champion_result
+        champion_profile_image = get_champion_profile_image(champion, games, win, lose, win_rate)
+
+        most_pick_image.paste(champion_profile_image, (0, 170 * index + 150))
+
+    return most_pick_image.resize((420, 600), Image.Resampling.LANCZOS)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

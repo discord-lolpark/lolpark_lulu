@@ -155,7 +155,7 @@ def get_banned_champions_by_position(summoner_id):
     WITH PlayerGames AS (
         SELECT P.match_id, P.game_index, P.line,
             CASE WHEN P.team_name = 'team_1' THEN 'team_2'
-                    WHEN P.team_name = 'team_2' THEN 'team_1' 
+                WHEN P.team_name = 'team_2' THEN 'team_1' 
             END AS opposite_team
         FROM PICKS P
         WHERE P.summoner_id = ?
@@ -164,23 +164,36 @@ def get_banned_champions_by_position(summoner_id):
         SELECT line, COUNT(DISTINCT match_id || '-' || game_index) AS total_games
         FROM PlayerGames
         GROUP BY line
+    ),
+    FixedOrder AS (
+        -- 강제적으로 정렬된 라인 순서 유지
+        SELECT 'top' AS position, 0 AS sort_order UNION ALL
+        SELECT 'jungle', 1 UNION ALL
+        SELECT 'mid', 2 UNION ALL
+        SELECT 'bot', 3 UNION ALL
+        SELECT 'support', 4
     )
-    -- 먼저 각 라인별 플레이한 게임 수를 출력
+    -- 먼저 각 라인별 플레이한 게임 수를 고정된 순서로 출력
     SELECT 
-        COALESCE(LG.line, 'top') AS position, 
-        'Total Games' AS champion, 
-        LG.total_games AS ban_count,
-        0 AS sort_order -- "Total Games"를 항상 위에 정렬
-    FROM LaneGames LG
+        FO.position, 'Total Games' AS champion, 
+        COALESCE(LG.total_games, 0) AS ban_count, 
+        FO.sort_order
+    FROM FixedOrder FO
+    LEFT JOIN LaneGames LG ON FO.position = LG.line
 
     UNION ALL
 
     -- 이후 각 라인에서 반대팀이 BAN한 챔피언 목록 출력
     SELECT 
-        COALESCE(PG.line, 'top') AS position, 
-        B.champion, 
-        COUNT(*) AS ban_count,
-        1 AS sort_order -- 실제 챔피언 BAN 데이터는 아래 정렬
+        PG.line AS position, B.champion, COUNT(*) AS ban_count, 
+        (CASE 
+            WHEN PG.line = 'top' THEN 0
+            WHEN PG.line = 'jungle' THEN 1
+            WHEN PG.line = 'mid' THEN 2
+            WHEN PG.line = 'bot' THEN 3
+            WHEN PG.line = 'support' THEN 4
+            ELSE 5
+        END) AS sort_order
     FROM BANS B
     JOIN PlayerGames PG
     ON B.match_id = PG.match_id 
@@ -188,10 +201,7 @@ def get_banned_champions_by_position(summoner_id):
     AND B.team_name = PG.opposite_team
     GROUP BY PG.line, B.champion
 
-    ORDER BY 
-        1, -- position 기준 정렬 (top → jungle → mid → bot → support)
-        sort_order ASC, -- "Total Games"를 항상 위로
-        3 DESC; -- ban_count 기준 내림차순 정렬
+    ORDER BY sort_order, ban_count DESC;
 
     '''
 
@@ -232,6 +242,65 @@ def get_most_picked_champions():
     return result
 
 
+# 라인별 픽 한 챔피언 가져오기
+def get_picked_champions_by_position(summoner_id):
+    conn = sqlite3.connect(matches_db)
+    cursor = conn.cursor()
+
+    query = '''
+    WITH PlayerGames AS (
+        SELECT P.match_id, P.game_index, P.line, P.champion
+        FROM PICKS P
+        WHERE P.summoner_id = ?
+    ),
+    LaneGames AS (
+        SELECT line, COUNT(DISTINCT match_id || '-' || game_index) AS total_games
+        FROM PlayerGames
+        GROUP BY line
+    ),
+    FixedOrder AS (
+        SELECT 'top' AS position, 0 AS sort_order UNION ALL
+        SELECT 'jungle', 1 UNION ALL
+        SELECT 'mid', 2 UNION ALL
+        SELECT 'bot', 3 UNION ALL
+        SELECT 'support', 4
+    )
+    -- 각 라인별 플레이한 게임 수를 고정된 순서로 출력
+    SELECT 
+        FO.position, 'Total Games' AS champion, 
+        COALESCE(LG.total_games, 0) AS pick_count, 
+        FO.sort_order
+    FROM FixedOrder FO
+    LEFT JOIN LaneGames LG ON FO.position = LG.line
+
+    UNION ALL
+
+    -- 이후 각 라인에서 픽한 챔피언 목록 출력
+    SELECT 
+        PG.line AS position, PG.champion, COUNT(*) AS pick_count, 
+        (CASE 
+            WHEN PG.line = 'top' THEN 0
+            WHEN PG.line = 'jungle' THEN 1
+            WHEN PG.line = 'mid' THEN 2
+            WHEN PG.line = 'bot' THEN 3
+            WHEN PG.line = 'support' THEN 4
+            ELSE 5
+        END) AS sort_order
+    FROM PlayerGames PG
+    GROUP BY PG.line, PG.champion
+    ORDER BY sort_order, pick_count DESC;
+    '''
+
+    cursor.execute(query, (summoner_id,))
+    result = cursor.fetchall()  # [(position, champion, pick_count), ...]
+
+    conn.close()
+
+    return result
+
+
+
+
 # match_id로 내전에 참여한 소환사들의 id 불러오기
 def get_summoners_by_match(match_id):
     conn = sqlite3.connect(matches_db)
@@ -251,3 +320,33 @@ def get_summoners_by_match(match_id):
     
     conn.close()
     return {'team_1': team_1, 'team_2': team_2}
+
+
+# 모스트 픽 가져오기
+def get_most_picked_champions(summoner_id):
+    conn = sqlite3.connect(matches_db)
+    cursor = conn.cursor()
+
+    query = '''
+    WITH PlayerPicks AS (
+        SELECT champion, COUNT(*) AS pick_count,
+               SUM(CASE WHEN P.team_name = G.winner_team THEN 1 ELSE 0 END) AS wins,
+               SUM(CASE WHEN P.team_name != G.winner_team THEN 1 ELSE 0 END) AS losses
+        FROM PICKS P
+        JOIN GAMES G ON P.match_id = G.match_id AND P.game_index = G.game_index
+        WHERE P.summoner_id = ?
+        GROUP BY champion
+    )
+    SELECT champion, pick_count, wins, losses, 
+           ROUND((wins * 100.0) / NULLIF(pick_count, 0), 2) AS win_rate
+    FROM PlayerPicks
+    ORDER BY pick_count DESC;
+    '''
+
+    cursor.execute(query, (summoner_id,))
+    result = cursor.fetchall()  # [(champion, pick_count, wins, losses, win_rate), ...]
+
+    conn.close()
+
+    return result
+

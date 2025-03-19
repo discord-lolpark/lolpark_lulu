@@ -56,7 +56,15 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
 @commands.has_role("LOLPARK PREMIUM")
 async def 상세전적(ctx):    
 
-    await lolpark_premium.lolpark_premium(ctx, ctx.author)
+    member = ctx.author
+
+    profile = await lolpark_premium(member)
+
+    buffer = io.BytesIO()
+    profile.save(buffer, format='PNG')
+    buffer.seek(0)
+
+    await ctx.send(file=discord.File(buffer, filename=f"{member.id}_profile.png"))
 
 
 @bot.command()
@@ -94,6 +102,18 @@ async def 라인별밴(ctx, member: discord.Member = None):
         member = ctx.author
 
     await ctx.send(get_banned_by_lane_text(member))
+
+
+@bot.command()
+@commands.has_role("LOLPARK PREMIUM")
+async def 라인별픽(ctx, member: discord.Member = None):
+
+    if member is None:
+        member = ctx.author
+
+    await ctx.send(get_picked_by_lane_text(member))
+    # get_most_picked_top_ten(member)
+
 
 
 @bot.command()
