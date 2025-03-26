@@ -309,7 +309,7 @@ def get_most_pick_images(member):
 
     most_pick_list = get_most_picked_champions(member.id)
 
-    title_text = get_textbox(700, 100, text='MOST PICK', font_path=font_paths["pyeongchang"], padding=50, font_color='black')
+    title_text = get_textbox(700, 100, text='MOST PICK', font_path=font_paths["pyeongchang"], max_font_size=50, padding=10, font_color='black')
 
     most_pick_image.paste(title_text, (0, 0))
     
@@ -371,7 +371,7 @@ def get_most_banned_images(member):
     
     banned_list = get_top_5_banned(banned_dict)
 
-    title_text = get_textbox(500, 100, text='MOST BANNED', font_path=font_paths["pyeongchang"], padding=0, font_color='black')
+    title_text = get_textbox(500, 100, text='MOST BANNED', font_path=font_paths["pyeongchang"], max_font_size=50, padding=10, font_color='black')
 
     most_banned_image.paste(title_text, (0, 0))
     
@@ -399,7 +399,7 @@ def get_most_selected_lane(member):
 
     lane_record_image = Image.new('RGB', (lane_x, lane_y), 'skyblue')
 
-    title_text = get_textbox(700, 100, text='라인별 승률', font_path=font_paths["pyeongchang"], padding=50, font_color='black')
+    title_text = get_textbox(700, 100, text='라인별 승률', font_path=font_paths["pyeongchang"], max_font_size=50, padding=10, font_color='black')
 
     lane_record_image.paste(title_text, (0, 0))
 

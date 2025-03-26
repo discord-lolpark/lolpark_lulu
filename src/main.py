@@ -40,6 +40,9 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
 
         await interaction.followup.send(file=discord.File(buffer, filename=f"{member.id}_profile.png"))
 
+        if member != interaction.user and member.id != 333804390332760064:
+            return
+
         class PremiumView(discord.ui.View):
             def __init__(self, member):  # async 제거
                 super().__init__(timeout=180)
