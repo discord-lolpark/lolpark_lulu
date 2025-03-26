@@ -9,7 +9,7 @@ h = 1000
 # font_path들 모음
 font_paths = {
     'cookierun': 'assets/fonts/CookieRun.ttf',
-    'notosans': 'assets/fonts/NoToSansKR.ttf',
+    'notosans': 'assets/fonts/NotoSansKR.ttf',
     'ownglyph': 'assets/fonts/Ownglyph.ttf',
     'pyeongchang': 'assets/fonts/pyeongchang.ttf',
     'gangwon': 'assets/fonts/gangwon.ttf',
