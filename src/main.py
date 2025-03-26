@@ -139,7 +139,7 @@ async def 모스트밴(ctx):
 @bot.command()
 @commands.has_role("LOLPARK PREMIUM")
 async def 라인별밴(ctx, member: discord.Member = None):
-
+    return
     member = ctx.author
 
     await ctx.send(get_banned_by_lane_text(member))
@@ -148,7 +148,7 @@ async def 라인별밴(ctx, member: discord.Member = None):
 @bot.command()
 @commands.has_role("LOLPARK PREMIUM")
 async def 라인별픽(ctx, member: discord.Member = None):
-
+    return
     member = ctx.author
 
     await ctx.send(get_picked_by_lane_text(member))
