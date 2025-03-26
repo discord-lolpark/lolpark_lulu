@@ -116,33 +116,34 @@ async def get_profile_image(member:discord.Member):
     return rounded_profile_image
 
 
-# 텍스트박스 가져오기
+# 텍스트박스 그리기
 def get_textbox(x: int, y: int, text: str, font_path: str, max_font_size=200, min_font_size=10, padding=10, font_color='white', background_color='skyblue'):
-
     textbox_image = Image.new('RGB', (x, y), background_color)
     draw = ImageDraw.Draw(textbox_image)
     font_size = max_font_size
 
     while font_size >= min_font_size:
         font = ImageFont.truetype(font_path, font_size)
-        # textsize() → textbbox()로 변경
+        # 텍스트 크기 측정 (bbox는 (left, top, right, bottom) 반환)
         bbox = draw.textbbox((0, 0), text, font=font)
-        text_x = bbox[2] - bbox[0]
-        text_y = bbox[3] - bbox[1]
+        
+        # 텍스트 실제 너비와 높이 계산
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
 
         # 텍스트가 박스 안에 들어가면 폰트 크기 확정
-        if text_x <= x - padding * 2 and text_y <= y:
+        if text_width <= x - padding * 2 and text_height <= y - padding * 2:
             break
         font_size -= 2  # 폰트 크기를 줄이면서 확인
 
-    # 텍스트 위치 중앙 정렬
-    text_x = (x - text_x) // 2
-    text_y = (y - text_y) // 2
+    # 텍스트 위치 중앙 정렬 (bbox 오프셋 고려)
+    text_x = (x - text_width) // 2 - bbox[0]  # left 오프셋 보정
+    text_y = (y - text_height) // 2 - bbox[1]  # top 오프셋 보정
 
-    # 텍스트 박스 그리기 (배경색)
-    draw.rectangle([0, 0, x * 2, y * 2], fill=background_color)
+    # 배경은 이미지 생성 시 이미 채워졌으므로 다시 그릴 필요 없음
+    # draw.rectangle([0, 0, x, y], fill=background_color)  # x*2, y*2가 아닌 x, y로 수정
 
-    # 텍스트 추가
+    # 텍스트 추가 (오프셋 보정된 위치에)
     draw.text((text_x, text_y), text, fill=font_color, font=font)
 
     return textbox_image
@@ -150,46 +151,9 @@ def get_textbox(x: int, y: int, text: str, font_path: str, max_font_size=200, mi
 
 def get_nickname_textbox(member: discord.Member):
     
-    from functions import get_tier_color
+    from functions import get_nickname, get_tier_color
 
-    nickname = member.display_name.split("/")[0].strip()
-
-    x = 800
-    y = 100
-
-    font_path = font_paths['notosans']
-    font_color = get_tier_color(member)
-    padding = 10
-    nickname_textbox_image = Image.new('RGB', (x, y), 'skyblue')
-    draw = ImageDraw.Draw(nickname_textbox_image)
-    # 폰트 크기 동적 조정 (최대 크기부터 점점 줄이기)
-    max_font_size = 200  # 최대 폰트 크기
-    min_font_size = 10   # 최소 폰트 크기
-    font_size = max_font_size
-
-    while font_size >= min_font_size:
-        font = ImageFont.truetype(font_path, font_size)
-        # textsize() → textbbox()로 변경
-        bbox = draw.textbbox((0, 0), nickname, font=font)
-        text_x = bbox[2] - bbox[0]
-        text_y = bbox[3] - bbox[1]
-
-        # 텍스트가 박스 안에 들어가면 폰트 크기 확정
-        if text_x <= x - padding * 2 and text_y <= y:
-            break
-        font_size -= 2  # 폰트 크기를 줄이면서 확인
-
-    # 텍스트 위치 중앙 정렬
-    text_x = (x - text_x) // 2
-    text_y = (y - text_y) // 2
-
-    # 텍스트 박스 그리기 (배경색)
-    draw.rectangle([0, 0, x * 2, y * 2], fill="skyblue")
-
-    # 텍스트 추가
-    draw.text((text_x, text_y), nickname, fill=font_color, font=font)
-
-    return nickname_textbox_image
+    return get_textbox(x=800, y=100, text=get_nickname(member), font_path=font_paths["notosans"], padding=20, font_color=get_tier_color(member))
 
 
 def get_tier_image(member):
