@@ -275,18 +275,18 @@ def get_champions_per_line(line_name):
             'garen', 'gangplank', 'gragas', 'gwen', 'gnar', 'nasus', 'darius',
             'renekton', 'rengar', 'rumble', 'riven', 'maokai', 'malphite', 'mordekaiser', 
             'drmundo', 'volibear', 'poppy', 'sion', 'sylas', 'sett', 'shen', 
-            'skarner', 'singed', 'akali', 'aatrox', 'ambessa', 'ornn', 'olaf',
+            'skarner', 'singed', 'akali', 'aatrox', 'ambessa', 'ornn',
             'wukong', 'udyr', 'urgot', 'warwick', 'yone', 'yorick', 'irelia', 
             'illaoi', 'jax', 'jayce', 'chogath', 'camille', 'cassiopeia', 'kennen', 
             'kayle', 'ksante', 'kled', 'quinn', 'tahmkench', 'tryndamere', 'teemo', 
             'fiora', 'heimerdinger'
         ],
         'jungle': [
-            'gragas', 'graves', 'gwen', 'nocturne', 'nunu', 'nidalee', 'diana', 
+            'graves', 'gwen', 'naafiri', 'nocturne', 'nunu', 'nidalee', 'diana', 
             'rammus', 'reksai', 'rengar', 'leesin', 'lillia', 'maokai', 'masteryi', 
             'morgana', 'vi', 'belveth', 'brand', 'briar', 'viego', 
             'sejuani', 'shaco', 'shyvana', 'skarner', 'xinzhao', 'amumu', 'ivern', 
-            'wukong', 'olaf', 'udyr', 'warwick', 'jarvaniv', 'zyra', 'zac', 
+            'wukong', 'olaf', 'udyr', 'jarvaniv', 'zyra', 'zac', 
             'jax', 'karthus', 'khazix', 'kayn', 'kindred', 'talon', 'taliyah', 
             'pantheon', 'fiddlesticks', 'poppy', 'volibear', 'hecarim'
         ],
@@ -295,7 +295,7 @@ def get_champions_per_line(line_name):
             'malzahar', 'mel', 'veigar', 'velkoz', 'vex', 'vladimir', 'viktor',
             'sylas', 'swain', 'syndra', 'ahri', 'akali', 'akshan', 'azir',
             'aurelionsol', 'annie', 'anivia', 'yasuo', 'ekko', 'orianna', 'yone',
-            'xerath', 'jayce', 'zoe', 'cassiopeia', 'karma', 'kassadin', 'katarina',
+            'xerath', 'jayce', 'zoe', 'cassiopeia', 'kassadin', 'katarina',
             'corki', 'quinn', 'qiyana', 'taliyah', 'talon', 'twistedfate', 'pantheon',
             'fizz', 'hwei'
         ],
@@ -310,7 +310,7 @@ def get_champions_per_line(line_name):
             'maokai', 'morgana', 'leona', 'lulu', 'lux', 'karma', 'rakan',
             'rell', 'renata', 'senna', 'seraphine', 'soraka', 'sona', 'janna',
             'thresh', 'taric', 'tahmkench', 'pyke', 'yuumi', 'alistar', 'elise',
-            'velkoz', 'xerath', 'zilean', 'zyra'
+            'velkoz', 'xerath', 'zilean', 
         ]
     }
 
