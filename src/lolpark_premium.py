@@ -157,7 +157,7 @@ def get_nickname_textbox(member: discord.Member):
     x = 800
     y = 100
 
-    font_path = font_paths['gangwon']
+    font_path = font_paths['notosans']
     font_color = get_tier_color(member)
     padding = 10
     nickname_textbox_image = Image.new('RGB', (x, y), 'skyblue')
