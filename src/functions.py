@@ -189,6 +189,37 @@ def get_nickname_without_tag(member):
     return get_nickname(member).split('#')[0].strip()
 
 
+def get_kor_line_name(line_eng):
+    kor_line_dict = {
+        'top': '탑',
+        'jungle': '정글',
+        'mid': '미드',
+        'bot': '원딜',
+        'support': '서폿'
+    }
+    return kor_line_dict.get(line_eng, None)
+
+
+def get_tier_color(member):
+
+    tier, score = get_tier(member)
+
+    tier_colors = {
+        "challenger": '#FFD700',
+        "grandmaster": '#E61E25',
+        "master": '#9932CC',
+        "diamond": '#ADD8E6',
+        "emerald": '#50C878',
+        "platinum": '#00A693',
+        "gold": "#FFD700",
+        "silver": "#C0C0C0",
+        "bronze": "#CD7F32",
+        "iron": "#5A5A5A",
+    }
+
+    return tier_colors.get(tier, "#D3D3D3")
+
+
 # member로부터 `티어, 점수(티어단계)` 가져오기 (영어로)
 def get_tier(member):
     display_tier = member.display_name.split('/')[1].strip().lstrip('🔺🔻')

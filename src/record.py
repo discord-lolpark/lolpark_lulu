@@ -1,7 +1,7 @@
 import sqlite3
 import discord
 
-matches_db = f"/database/matches.db"
+matches_db = f"database/matches.db"
 
 
 # 총 게임 수 가져오기
@@ -300,7 +300,6 @@ def get_picked_champions_by_position(summoner_id):
 
 
 
-
 # match_id로 내전에 참여한 소환사들의 id 불러오기
 def get_summoners_by_match(match_id):
     conn = sqlite3.connect(matches_db)
@@ -340,7 +339,7 @@ def get_most_picked_champions(summoner_id):
     SELECT champion, pick_count, wins, losses, 
            ROUND((wins * 100.0) / NULLIF(pick_count, 0), 2) AS win_rate
     FROM PlayerPicks
-    ORDER BY pick_count DESC;
+    ORDER BY pick_count DESC, win_rate DESC;
     '''
 
     cursor.execute(query, (summoner_id,))
@@ -350,3 +349,30 @@ def get_most_picked_champions(summoner_id):
 
     return result
 
+
+def get_linewise_game_stats(summoner_id):
+    conn = sqlite3.connect(matches_db)
+    cursor = conn.cursor()
+
+    query = '''
+    WITH LineStats AS (
+        SELECT P.line, COUNT(*) AS total_games,
+               SUM(CASE WHEN P.team_name = G.winner_team THEN 1 ELSE 0 END) AS wins,
+               SUM(CASE WHEN P.team_name != G.winner_team THEN 1 ELSE 0 END) AS losses,
+               ROUND((SUM(CASE WHEN P.team_name = G.winner_team THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(*), 0), 2) AS win_rate
+        FROM PICKS P
+        JOIN GAMES G ON P.match_id = G.match_id AND P.game_index = G.game_index
+        WHERE P.summoner_id = ?
+        GROUP BY P.line
+    )
+    SELECT line, total_games, wins, losses, win_rate
+    FROM LineStats
+    ORDER BY total_games DESC, win_rate DESC;
+    '''
+
+    cursor.execute(query, (summoner_id,))
+    result = cursor.fetchall()  # [(line, total_games, wins, losses, win_rate), ...]
+
+    conn.close()
+
+    return result

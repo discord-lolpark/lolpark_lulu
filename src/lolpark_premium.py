@@ -11,7 +11,8 @@ font_paths = {
     'cookierun': 'assets/fonts/CookieRun.ttf',
     'notosans': 'assets/fonts/NoToSansKR.ttf',
     'ownglyph': 'assets/fonts/Ownglyph.ttf',
-    'pyeongchang': 'assets/fonts/pyeongchang.ttf'
+    'pyeongchang': 'assets/fonts/pyeongchang.ttf',
+    'gangwon': 'assets/fonts/gangwon.ttf',
 }
 
 
@@ -58,6 +59,9 @@ async def get_lolpark_premium_profile(member: discord.Member):
     # 모스트 픽
     most_pick_image = get_most_pick_images(member)
 
+    # 라인별 승률
+    winrate_by_lane_image = get_most_selected_lane(member)
+
     # 각 이미지들 paste
     profile.paste(profile_image, (padding, padding))
     profile.paste(nickname_textbox, (padding + padding // 2 + profile_image.width, padding - 10))
@@ -66,6 +70,8 @@ async def get_lolpark_premium_profile(member: discord.Member):
     profile.paste(full_record_textbox, (padding, padding * 2 + 100))
 
     profile.paste(most_pick_image, (padding, 350))
+
+    profile.paste(winrate_by_lane_image, (padding + 500, 350))
 
     return profile
 
@@ -138,12 +144,15 @@ def get_textbox(x: int, y: int, text: str, font_path: str, max_font_size=200, mi
 
 def get_nickname_textbox(member: discord.Member):
     
+    from functions import get_tier_color
+
     nickname = member.display_name.split("/")[0].strip()
 
     x = 800
     y = 100
 
-    font_path = "assets/fonts/Ownglyph.ttf"
+    font_path = font_paths['gangwon']
+    font_color = get_tier_color(member)
     padding = 10
     nickname_textbox_image = Image.new('RGB', (x, y), 'skyblue')
     draw = ImageDraw.Draw(nickname_textbox_image)
@@ -172,7 +181,7 @@ def get_nickname_textbox(member: discord.Member):
     draw.rectangle([0, 0, x * 2, y * 2], fill="skyblue")
 
     # 텍스트 추가
-    draw.text((text_x, text_y), nickname, fill="white", font=font)
+    draw.text((text_x, text_y), nickname, fill=font_color, font=font)
 
     return nickname_textbox_image
 
@@ -326,7 +335,8 @@ def get_most_pick_images(member):
 
         champion_name_textbox = get_textbox(x=100, y=40, text=champion_kor, font_path=font_paths["ownglyph"], max_font_size=50, min_font_size=5, padding=5, font_color='black')
 
-        result_textbox = get_textbox(x=550, y=100, text=f'{games}전 {win}승 {lose}패 ({win_rate}%)', font_path=font_paths["cookierun"])
+        result_text_color = 'red' if win_rate >= 60.0 else 'blue' if win_rate <= 40.0 else 'gray'
+        result_textbox = get_textbox(x=550, y=100, text=f'{games}전 {win}승 {lose}패 ({win_rate}%)', font_path=font_paths["cookierun"], font_color=result_text_color)
 
         champion_profile_img.paste(champion_img, (0, 0))
         champion_profile_img.paste(champion_name_textbox, (0, 100))
@@ -346,6 +356,64 @@ def get_most_pick_images(member):
 
     return most_pick_image.resize((420, 600), Image.Resampling.LANCZOS)
 
+
+# 라인별 승률 나열
+def get_most_selected_lane(member):
+    
+    from record import get_linewise_game_stats
+    from functions import get_kor_line_name
+
+    lane_x = 700
+    lane_y = 1000
+
+    lane_record_image = Image.new('RGB', (lane_x, lane_y), 'skyblue')
+
+    title_text = get_textbox(700, 100, text='라인별 승률', font_path=font_paths["pyeongchang"], max_font_size=50, padding=200, font_color='black')
+
+    lane_record_image.paste(title_text, (0, 0))
+
+    line_record = get_linewise_game_stats(member.id) # (라인 이름(영어), 총 게임 수, 승, 패, 승률)
+
+    def get_lane_logo(line):
+
+        # ✅ 원본 이미지 불러오기 (RGBA 모드 유지)
+        line_logo_image = Image.open(f'assets/line_icons/{line}_{"primary" if primary else "normal"}.png').convert("RGBA").resize((100, 100), Image.Resampling.LANCZOS)
+
+        # ✅ 새로운 배경 생성 (예: skyblue)
+        background = Image.new("RGBA", (100, 100), "skyblue")
+
+        # ✅ 투명한 부분을 skyblue로 채운 이미지 생성
+        background.paste(line_logo_image, (0, 0), line_logo_image)
+
+        return background
+
+    def get_record_by_lane(line, games, win, lose, win_rate, primary=False):
+
+        record_image = Image.new('RGB', (700, 140), 'skyblue')
+        line_image = get_lane_logo(line)
+
+        line_name_textbox = get_textbox(x=100, y=40, text=get_kor_line_name(line), font_path=font_paths["ownglyph"], max_font_size=40, min_font_size=40, padding=5, font_color='black')
+        record_text = f"{games}전 {win}승 {lose}패 ({win_rate}%)"
+
+        record_text_color = 'red' if win_rate >= 60.0 else 'blue' if win_rate <= 40.0 else 'gray'
+        record_textbox = get_textbox(550, 100, record_text, font_paths["cookierun"], font_color=record_text_color)
+
+        record_image.paste(line_image, (0, 0))
+        record_image.paste(line_name_textbox, (0, 100))
+        record_image.paste(record_textbox, (150, 0))
+
+        return record_image
+        
+
+    for index, record in enumerate(line_record):
+        line, games, win, lose, win_rate = record
+
+        primary = True if index == 0 else False
+
+        lane_image = get_record_by_lane(line, games, win, lose, win_rate, primary)
+        lane_record_image.paste(lane_image, (0, 170 * index + 150))
+
+    return lane_record_image.resize((420, 600), Image.Resampling.LANCZOS)
 
 
 
