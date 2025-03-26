@@ -67,7 +67,7 @@ async def get_lolpark_premium_profile(member: discord.Member):
 
     # 각 이미지들 paste
     profile.paste(profile_image, (padding, padding))
-    profile.paste(nickname_textbox, (padding + padding // 2 + profile_image.width, padding - 10))
+    profile.paste(nickname_textbox, (padding + padding // 2 + profile_image.width, padding))
     profile.paste(tier_image, (padding * 2 + profile_image.width + nickname_textbox.width, padding))
 
     profile.paste(full_record_textbox, (padding, padding * 2 + 100))
@@ -162,7 +162,7 @@ def get_tier_image(member):
 
     tier, tier_score = functions.get_tier(member)
 
-    tier_image = Image.new('RGB', (300, 100), 'skyblue')
+    tier_image = Image.new('RGB', (350, 100), 'skyblue')
     
     def get_tier_logo(tier):
 
@@ -179,7 +179,7 @@ def get_tier_image(member):
     
     def get_tier_score_textbox(tier, tier_score):
         
-        tier_score_textbox_image = Image.new('RGB', (150, 80), 'skyblue')
+        tier_score_textbox_image = Image.new('RGB', (200, 80), 'skyblue')
         draw = ImageDraw.Draw(tier_score_textbox_image)
         font_path = "assets/fonts/CookieRun.ttf"
         font_size = 60
@@ -309,7 +309,7 @@ def get_most_pick_images(member):
 
     most_pick_list = get_most_picked_champions(member.id)
 
-    title_text = get_textbox(700, 100, text='MOST PICK', font_path=font_paths["pyeongchang"], max_font_size=50, padding=200, font_color='black')
+    title_text = get_textbox(700, 100, text='MOST PICK', font_path=font_paths["pyeongchang"], padding=200, font_color='black')
 
     most_pick_image.paste(title_text, (0, 0))
     
@@ -371,7 +371,7 @@ def get_most_banned_images(member):
     
     banned_list = get_top_5_banned(banned_dict)
 
-    title_text = get_textbox(500, 100, text='MOST BANNED', font_path=font_paths["pyeongchang"], max_font_size=70, padding=50, font_color='black')
+    title_text = get_textbox(500, 100, text='MOST BANNED', font_path=font_paths["pyeongchang"], padding=50, font_color='black')
 
     most_banned_image.paste(title_text, (0, 0))
     
@@ -399,7 +399,7 @@ def get_most_selected_lane(member):
 
     lane_record_image = Image.new('RGB', (lane_x, lane_y), 'skyblue')
 
-    title_text = get_textbox(700, 100, text='라인별 승률', font_path=font_paths["pyeongchang"], max_font_size=50, padding=200, font_color='black')
+    title_text = get_textbox(700, 100, text='라인별 승률', font_path=font_paths["pyeongchang"], padding=200, font_color='black')
 
     lane_record_image.paste(title_text, (0, 0))
 
