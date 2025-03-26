@@ -39,6 +39,48 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
         buffer.seek(0)
 
         await interaction.followup.send(file=discord.File(buffer, filename=f"{member.id}_profile.png"))
+
+        class PremiumView(discord.ui.View):
+            def __init__(self, member):  # async 제거
+                super().__init__(timeout=180)
+                self.message = None
+                self.member = member  # 멤버 저장
+                self.add_item(MostPickButton())
+                self.add_item(MostBannedButton())
+
+            async def on_timeout(self):
+                try:
+                    await self.message.delete()
+                except discord.NotFound:
+                    pass
+                except Exception as e:
+                    print(f"오류 발생 : {e}")
+
+        class MostPickButton(discord.ui.Button):
+            def __init__(self):
+                super().__init__(label="가장 많이 픽한 챔피언", style=discord.ButtonStyle.primary)
+            
+            async def callback(self, interaction):  # 콜백 메서드 추가
+                # 여기서 버튼이 클릭되었을 때 실행될 코드
+                view = self.view
+                await interaction.response.send_message(get_picked_by_lane_text(view.member), ephemeral=True)
+
+        class MostBannedButton(discord.ui.Button):
+            def __init__(self):
+                super().__init__(label="가장 많이 밴한 챔피언", style=discord.ButtonStyle.danger)
+            
+            async def callback(self, interaction):  # 콜백 메서드 추가
+                # 여기서 버튼이 클릭되었을 때 실행될 코드
+                view = self.view
+                await interaction.response.send_message(get_banned_by_lane_text(view.member), ephemeral=True)
+
+        # 사용 예시
+        premium_view = PremiumView(member)
+        premium_view.message = await interaction.followup.send(
+            content="## 롤파크 프리미엄 추가 기능", 
+            view=premium_view,  # 새 인스턴스 생성 대신 기존 인스턴스 사용
+            ephemeral=True
+        )
     else:
         profile_embed = discord.Embed(
             title=f"[ LOLPARK 2025 SPRING SEASON ]",
@@ -98,8 +140,7 @@ async def 모스트밴(ctx):
 @commands.has_role("LOLPARK PREMIUM")
 async def 라인별밴(ctx, member: discord.Member = None):
 
-    if member is None:
-        member = ctx.author
+    member = ctx.author
 
     await ctx.send(get_banned_by_lane_text(member))
 
@@ -108,11 +149,9 @@ async def 라인별밴(ctx, member: discord.Member = None):
 @commands.has_role("LOLPARK PREMIUM")
 async def 라인별픽(ctx, member: discord.Member = None):
 
-    if member is None:
-        member = ctx.author
+    member = ctx.author
 
     await ctx.send(get_picked_by_lane_text(member))
-    # get_most_picked_top_ten(member)
 
 
 
