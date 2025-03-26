@@ -59,6 +59,9 @@ async def get_lolpark_premium_profile(member: discord.Member):
     # 모스트 픽
     most_pick_image = get_most_pick_images(member)
 
+    # 저격밴
+    most_banned_image = get_most_banned_images(member)
+
     # 라인별 승률
     winrate_by_lane_image = get_most_selected_lane(member)
 
@@ -69,9 +72,12 @@ async def get_lolpark_premium_profile(member: discord.Member):
 
     profile.paste(full_record_textbox, (padding, padding * 2 + 100))
 
+    # 모스트 픽 top 5
     profile.paste(most_pick_image, (padding, 350))
-
-    profile.paste(winrate_by_lane_image, (padding + 500, 350))
+    # 저격밴 top 5
+    profile.paste(most_banned_image, (padding + 500, 350))
+    # 라인별 승률
+    profile.paste(winrate_by_lane_image, (padding + 500 + 380, 350))
 
     return profile
 
@@ -308,11 +314,29 @@ def get_full_record_textbox(member):
     return record_textbox_image
 
 
+# 챔피언 프로필 이미지 가져오기
+def get_champion_profile_image(champion):
+
+    from functions import get_full_champion_kor_name
+    
+    champion_profile_img = Image.new('RGB', (100, 150), 'skyblue')
+
+    champion_kor = get_full_champion_kor_name(champion)
+
+    champion_img = Image.open(f"assets/champions/square/{champion}.png").resize((100, 100), Image.Resampling.LANCZOS)
+
+    champion_name_textbox = get_textbox(x=100, y=40, text=champion_kor, font_path=font_paths["ownglyph"], max_font_size=50, min_font_size=5, padding=5, font_color='black')
+
+    champion_profile_img.paste(champion_img, (0, 0))
+    champion_profile_img.paste(champion_name_textbox, (0, 100))
+
+    return champion_profile_img
+
+
 # 모스트 픽 top 5 나열
 def get_most_pick_images(member):
 
     from record import get_most_picked_champions
-    from functions import get_full_champion_kor_name
 
     most_x = 700
     most_y = 1000
@@ -324,25 +348,6 @@ def get_most_pick_images(member):
     title_text = get_textbox(700, 100, text='MOST PICK', font_path=font_paths["pyeongchang"], max_font_size=50, padding=200, font_color='black')
 
     most_pick_image.paste(title_text, (0, 0))
-
-    def get_champion_profile_image(champion, games, win, lose, win_rate):
-        
-        champion_profile_img = Image.new('RGB', (700, 150), 'skyblue')
-
-        champion_kor = get_full_champion_kor_name(champion)
-
-        champion_img = Image.open(f"assets/champions/square/{champion}.png").resize((100, 100), Image.Resampling.LANCZOS)
-
-        champion_name_textbox = get_textbox(x=100, y=40, text=champion_kor, font_path=font_paths["ownglyph"], max_font_size=50, min_font_size=5, padding=5, font_color='black')
-
-        result_text_color = 'red' if win_rate >= 60.0 else 'blue' if win_rate <= 40.0 else 'gray'
-        result_textbox = get_textbox(x=550, y=100, text=f'{games}전 {win}승 {lose}패 ({win_rate}%)', font_path=font_paths["cookierun"], font_color=result_text_color)
-
-        champion_profile_img.paste(champion_img, (0, 0))
-        champion_profile_img.paste(champion_name_textbox, (0, 100))
-        champion_profile_img.paste(result_textbox, (150, 0))
-
-        return champion_profile_img
     
     for index, champion_result in enumerate(most_pick_list):
 
@@ -350,11 +355,73 @@ def get_most_pick_images(member):
             break
 
         champion, games, win, lose, win_rate = champion_result
-        champion_profile_image = get_champion_profile_image(champion, games, win, lose, win_rate)
+        champion_profile_image = get_champion_profile_image(champion)
+
+        result_text_color = 'red' if win_rate >= 60.0 else 'blue' if win_rate <= 40.0 else 'gray'
+        result_textbox = get_textbox(x=550, y=100, text=f'{games}전 {win}승 {lose}패 ({win_rate}%)', font_path=font_paths["cookierun"], font_color=result_text_color)
+
+        most_pick_image.paste(result_textbox, (150, 170 * index + 150))
 
         most_pick_image.paste(champion_profile_image, (0, 170 * index + 150))
 
     return most_pick_image.resize((420, 600), Image.Resampling.LANCZOS)
+
+
+# 모스트 픽 top 5 나열
+def get_most_banned_images(member):
+
+    from record import get_banned_champions_by_position
+    from functions import get_champions_per_line
+
+    most_x = 500
+    most_y = 1000
+
+    most_banned_image = Image.new('RGB', (most_x, most_y), 'skyblue')
+
+    banned_by_lane_result = get_banned_champions_by_position(member.id)
+
+    banned_dict = {}
+
+    for row in banned_by_lane_result:
+        position_eng, champion, ban_count, _ = row
+
+        if ban_count == 0:
+            continue
+        
+        champion_per_line = get_champions_per_line(position_eng)
+
+        if champion == "Total Games":
+            continue
+        else:
+            if champion in champion_per_line:
+                if champion in banned_dict:
+                    banned_dict[champion] += ban_count
+                else:
+                    banned_dict[champion] = ban_count
+    
+    def get_top_5_banned(ban_dict):
+        count = min(len(ban_dict), 5)
+        # value를 기준으로 내림차순 정렬한 후 상위 5개만 선택
+        sorted_items = sorted(ban_dict.items(), key=lambda x: x[1], reverse=True)
+        return dict(sorted_items[:count])
+    
+    banned_list = get_top_5_banned(banned_dict)
+
+    title_text = get_textbox(500, 100, text='MOST BANNED', font_path=font_paths["pyeongchang"], max_font_size=70, padding=50, font_color='black')
+
+    most_banned_image.paste(title_text, (0, 0))
+    
+    for index, (champion, ban_count) in enumerate(banned_list.items()):
+
+        champion_profile_image = get_champion_profile_image(champion)
+
+        most_banned_image.paste(champion_profile_image, (0, 170 * index + 150))
+        
+        ban_count_textbox = get_textbox(x=350, y=100, text=f'{ban_count}회', font_path=font_paths["cookierun"], max_font_size=50, font_color='black')
+
+        most_banned_image.paste(ban_count_textbox, (150, 170 * index + 150))
+
+    return most_banned_image.resize((300, 600), Image.Resampling.LANCZOS)
 
 
 # 라인별 승률 나열

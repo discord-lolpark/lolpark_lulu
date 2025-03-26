@@ -1,7 +1,7 @@
 import sqlite3
 import discord
 
-matches_db = f"database/matches.db"
+matches_db = f"/database/matches.db"
 
 
 # 총 게임 수 가져오기
@@ -146,7 +146,6 @@ def get_most_banned_champions():
 
 
 # 유저별 라인별로 밴 당한 챔피언 목록
-
 def get_banned_champions_by_position(summoner_id):
     conn = sqlite3.connect(matches_db)
     cursor = conn.cursor()
