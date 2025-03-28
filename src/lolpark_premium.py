@@ -13,6 +13,7 @@ font_paths = {
     'ownglyph': 'assets/fonts/Ownglyph.ttf',
     'pyeongchang': 'assets/fonts/pyeongchang.ttf',
     'gangwon': 'assets/fonts/gangwon.ttf',
+    'jamsil': 'assets/fonts/Jamsil.ttf'
 }
 
 
@@ -153,7 +154,7 @@ def get_nickname_textbox(member: discord.Member):
     
     from functions import get_nickname, get_tier_color
 
-    return get_textbox(x=800, y=100, text=get_nickname(member), font_path=font_paths["notosans"], padding=20, font_color=get_tier_color(member))
+    return get_textbox(x=800, y=100, text=get_nickname(member), font_path=font_paths["jamsil"], padding=20, font_color=get_tier_color(member))
 
 
 def get_tier_image(member):
