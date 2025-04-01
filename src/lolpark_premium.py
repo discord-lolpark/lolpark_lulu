@@ -80,7 +80,7 @@ async def get_lolpark_premium_profile(member: discord.Member):
     # 라인별 승률
     profile.paste(winrate_by_lane_image, (padding + 500 + 380, 350))
 
-    return profile.rotate(180)
+    return profile
 
 
 async def get_profile_image(member:discord.Member):
