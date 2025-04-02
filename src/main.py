@@ -113,21 +113,15 @@ async def 상세전적(ctx):
 
 
 @bot.command()
-async def 임시전적(ctx, member: discord.Member = None):
+@commands.is_owner()
+async def 기록삭제(ctx, match_id: int):
 
-    if member is None:
-        member = ctx.author
+    try:
+        delete_match_data(match_id)
+        await ctx.send(f'{match_id}번 내전 기록을 삭제했습니다.')
+    except Exception as e:
+        await ctx.send(f'기록 삭제 중 오류가 발생했습니다.')
 
-    id = member.id
-    summoner_stats_by_channel = get_summoner_stats_by_channel(id)
-
-    result_str = f"# {get_nickname(member)} 채널별 전적\n\n"
-
-    for channel_id, channel_result in summoner_stats_by_channel.items():
-        result_str += f"### {convert_channel_id_to_name(channel_id)}\n\n"
-        result_str += f"{channel_result['total_games']}전 {channel_result['wins']}승 {channel_result['loses']}패 ({channel_result['win_rate']}%)\n\n"
-
-    await ctx.send(result_str)
 
 
 @bot.command()

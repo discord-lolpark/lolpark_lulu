@@ -176,3 +176,17 @@ def get_picked_by_lane_text(user: discord.Member):
             picked_by_lane_text += (f" {get_full_champion_kor_name(champion)} - {pick_count}회\n")
 
     return picked_by_lane_text
+
+
+def delete_match_data(match_id):
+    conn = sqlite3.connect(matches_db)
+    cursor = conn.cursor()
+
+    # 테이블에서 match_id에 해당하는 데이터 삭제
+    cursor.execute("DELETE FROM PICKS WHERE match_id = ?", (match_id,))
+    cursor.execute("DELETE FROM BANS WHERE match_id = ?", (match_id,))
+    cursor.execute("DELETE FROM GAMES WHERE match_id = ?", (match_id,))
+    cursor.execute("DELETE FROM MATCHES WHERE match_id = ?", (match_id,))
+
+    conn.commit()
+    conn.close()
