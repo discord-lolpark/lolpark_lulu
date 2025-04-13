@@ -173,6 +173,13 @@ async def 내전정보(ctx, match_id: int):
     await ctx.send(match_text)
 
 
+@bot.command()
+@commands.is_owner()
+async def 승패변경(ctx, match_id: int, game_number: int):
+    import magics 
+
+    magics.swap_game_winner(match_id, game_number)
+    await bot.close()
 
 
 @bot.command()
