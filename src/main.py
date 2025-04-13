@@ -178,8 +178,8 @@ async def 내전정보(ctx, match_id: int):
 async def 승패변경(ctx, match_id: int, game_number: int):
     import magics 
 
-    magics.swap_game_winner(match_id, game_number)
-    await bot.close()
+    if magics.swap_game_winner(match_id, game_number):
+        await ctx.send(f"내전 #{match_id} {game_number}번 게임 결과가 수정되었습니다.")
 
 
 @bot.command()

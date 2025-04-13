@@ -190,3 +190,95 @@ def delete_match_data(match_id):
 
     conn.commit()
     conn.close()
+
+
+def swap_game_winner(match_id, game_number):
+    """
+    특정 게임의 승자와 패자 팀을 서로 바꾸고, MATCHES 테이블의 승리 기록도 업데이트합니다.
+    
+    Parameters:
+    match_id (int): 매치 ID
+    game_number (int): 게임 번호 (game_index)
+    
+    Returns:
+    bool: 성공적으로 업데이트되었는지 여부
+    """
+    try:
+        # 데이터베이스 연결
+        conn = sqlite3.connect(matches_db)
+        cursor = conn.cursor()
+        
+        # 트랜잭션 시작
+        conn.execute("BEGIN TRANSACTION")
+        
+        # 1. 현재 게임의 승자와 패자 정보 가져오기
+        cursor.execute('''
+            SELECT winner_team, loser_team
+            FROM GAMES
+            WHERE match_id = ? AND game_index = ?
+        ''', (match_id, game_number))
+        
+        game_info = cursor.fetchone()
+        if not game_info:
+            print(f"게임 정보를 찾을 수 없습니다: match_id={match_id}, game_index={game_number}")
+            conn.rollback()
+            conn.close()
+            return False
+        
+        current_winner, current_loser = game_info
+        
+        # 만약 승자나 패자 정보가 없으면 실패
+        if not current_winner or not current_loser:
+            print(f"승자 또는 패자 정보가 없습니다. 완료된 게임이 아닙니다.")
+            conn.rollback()
+            conn.close()
+            return False
+        
+        # 2. GAMES 테이블에서 승자와 패자 뒤바꾸기
+        cursor.execute('''
+            UPDATE GAMES
+            SET winner_team = ?, loser_team = ?
+            WHERE match_id = ? AND game_index = ?
+        ''', (current_loser, current_winner, match_id, game_number))
+        
+        # 3. MATCHES 테이블에서 승리 카운트 업데이트
+        # 이전 승자의 승리 수 감소
+        cursor.execute(f'''
+            UPDATE MATCHES
+            SET {current_winner}_win = {current_winner}_win - 1
+            WHERE match_id = ?
+        ''', (match_id,))
+        
+        # 새 승자(이전 패자)의 승리 수 증가
+        cursor.execute(f'''
+            UPDATE MATCHES
+            SET {current_loser}_win = {current_loser}_win + 1
+            WHERE match_id = ?
+        ''', (match_id,))
+        
+        # 트랜잭션 커밋
+        conn.commit()
+        
+        print(f"게임 승자가 성공적으로 변경되었습니다: match_id={match_id}, game_index={game_number}")
+        print(f"이전 승자: {current_winner}, 새 승자: {current_loser}")
+        
+        # 연결 종료
+        cursor.close()
+        conn.close()
+        
+        return True
+        
+    except sqlite3.Error as e:
+        print(f"데이터베이스 오류: {e}")
+        # 연결이 열려있는 경우 롤백하고 닫기
+        if 'conn' in locals() and conn:
+            conn.rollback()
+            conn.close()
+        return False
+    except Exception as e:
+        print(f"예상치 못한 오류: {e}")
+        # 연결이 열려있는 경우 롤백하고 닫기
+        if 'conn' in locals() and conn:
+            conn.rollback()
+            conn.close()
+        return False
