@@ -27,6 +27,9 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
         if member is None:
             member = interaction.user
         profile = await lolpark_premium(member)
+        buffer = io.BytesIO()
+        profile.save(buffer, format='PNG')
+        buffer.seek(0)
         await interaction.followup.send(file=discord.File(buffer, filename=f"{member.id}_profile.png"))
 
     if interaction.channel_id != 1347946316902436864:
