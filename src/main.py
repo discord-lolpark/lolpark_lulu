@@ -36,9 +36,11 @@ async def on_ready():
 
 @bot.tree.command(name="전적")
 async def find_record(interaction: discord.Interaction, member: discord.Member = None):
-    await interaction.response.defer(ephemeral=(interaction.channel_id == config.record_search_channel_private_id))
 
     import config
+
+    await interaction.response.defer(ephemeral=(interaction.channel_id == config.record_search_channel_private_id))
+
 
     channel_id = interaction.channel_id
     user = interaction.user
