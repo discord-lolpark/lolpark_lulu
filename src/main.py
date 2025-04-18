@@ -38,40 +38,67 @@ async def on_ready():
 async def find_record(interaction: discord.Interaction, member: discord.Member = None):
     await interaction.response.defer()
 
-    if interaction.channel_id == 1361969506905358356:
-        if member is None:
-            member = interaction.user
-        profile = await lolpark_premium(member)
-        buffer = io.BytesIO()
-        profile.save(buffer, format='PNG')
-        buffer.seek(0)
-        await interaction.followup.send(file=discord.File(buffer, filename=f"{member.id}_profile.png"))
+    import config
 
-    if interaction.channel_id != 1347946316902436864:
-        return
-
+    channel_id = interaction.channel_id
+    user = interaction.user
+    user_premium_role = discord.utils.get(user.roles, name='LOLPARK PREMIUM')
+    
     if member is None:
         member = interaction.user
 
+    lolpark_standard_role = discord.utils.get(member.roles, name='LOLPARK STANDARD')
     lolpark_premium_role = discord.utils.get(member.roles, name='LOLPARK PREMIUM')
-
-    if lolpark_premium_role:
+    
+    # 프리미엄 프로필 생성 및 전송하는 함수
+    async def send_premium_profile(ephemeral=False):
         profile = await lolpark_premium(member)
-
         buffer = io.BytesIO()
         profile.save(buffer, format='PNG')
         buffer.seek(0)
+        await interaction.followup.send(
+            file=discord.File(buffer, filename=f"{member.id}_profile.png"), 
+            ephemeral=ephemeral
+        )
+        
+    # 일반 프로필 생성 및 전송하는 함수
+    async def send_standard_profile(ephemeral=False):
+        profile_embed = discord.Embed(
+            title=f"[ LOLPARK 2025 SPRING SEASON ]",
+            description=get_summarized_record_text(member),
+            color=discord.Color.pink()
+        )
+        icon_url = member.avatar.url if member.avatar else member.default_avatar.url
+        profile_embed.set_author(name=get_nickname(member), icon_url=icon_url)
+        await interaction.followup.send(embed=profile_embed, ephemeral=ephemeral)
 
-        await interaction.followup.send(file=discord.File(buffer, filename=f"{member.id}_profile.png"))
-
-        if member != interaction.user and member.id != 333804390332760064:
+    # 관리자 채널: 항상 프리미엄 결과 표시
+    if channel_id == config.record_search_channel_administrator_id:
+        await send_premium_profile()
+    
+    # 공개 채널
+    elif channel_id == config.record_search_channel_public_id:
+        if lolpark_premium_role and user_premium_role:
+            await send_premium_profile()
+        elif lolpark_premium_role or lolpark_standard_role:
+            await send_standard_profile()
             return
-
+    
+    # 비공개 채널
+    elif channel_id == config.record_search_channel_private_id:
+        if lolpark_premium_role and user_premium_role:
+            await send_premium_profile(ephemeral=True)
+        elif lolpark_premium_role or lolpark_standard_role:
+            await send_standard_profile(ephemeral=True)
+            return
+    
+    # 자신의 전적을 조회한 경우 추가 기능 버튼 제공
+    if member == user:
         class PremiumView(discord.ui.View):
-            def __init__(self, member):  # async 제거
+            def __init__(self, member):
                 super().__init__(timeout=180)
                 self.message = None
-                self.member = member  # 멤버 저장
+                self.member = member
                 self.add_item(MostPickButton())
                 self.add_item(MostBannedButton())
 
@@ -87,8 +114,7 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
             def __init__(self):
                 super().__init__(label="가장 많이 픽한 챔피언", style=discord.ButtonStyle.primary)
             
-            async def callback(self, interaction):  # 콜백 메서드 추가
-                # 여기서 버튼이 클릭되었을 때 실행될 코드
+            async def callback(self, interaction):
                 view = self.view
                 await interaction.response.send_message(get_picked_by_lane_text(view.member), ephemeral=True)
 
@@ -96,29 +122,16 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
             def __init__(self):
                 super().__init__(label="가장 많이 밴한 챔피언", style=discord.ButtonStyle.danger)
             
-            async def callback(self, interaction):  # 콜백 메서드 추가
-                # 여기서 버튼이 클릭되었을 때 실행될 코드
+            async def callback(self, interaction):
                 view = self.view
                 await interaction.response.send_message(get_banned_by_lane_text(view.member), ephemeral=True)
 
-        # 사용 예시
         premium_view = PremiumView(member)
         premium_view.message = await interaction.followup.send(
             content="## 롤파크 프리미엄 추가 기능", 
-            view=premium_view,  # 새 인스턴스 생성 대신 기존 인스턴스 사용
+            view=premium_view,
             ephemeral=True
         )
-    else:
-        profile_embed = discord.Embed(
-            title=f"[ LOLPARK 2025 SPRING SEASON ]",
-            description=get_summarized_record_text(member),
-            color=discord.Color.pink()
-        )
-
-        icon_url = member.avatar.url if member.avatar else member.default_avatar.url
-        profile_embed.set_author(name=get_nickname(member), icon_url=icon_url)
-
-        await interaction.followup.send(embed=profile_embed)
 
 
 @bot.command()
