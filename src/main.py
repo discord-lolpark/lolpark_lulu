@@ -52,6 +52,10 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     lolpark_standard_role = discord.utils.get(member.roles, name='LOLPARK STANDARD')
     lolpark_premium_role = discord.utils.get(member.roles, name='LOLPARK PREMIUM')
     
+    # 전적 열람 멤버가 권한이 아예 없는 경우, 무시
+    if not lolpark_premium_role and not lolpark_premium_role:
+        await interaction.followup.send(f"대상의 전적 열람 권한이 없습니다.", ephemeral=True)
+
     # 비공개 채널인지 확인
     is_private = (channel_id == config.record_search_channel_private_id)
     
