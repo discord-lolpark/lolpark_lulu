@@ -1,17 +1,32 @@
 import os
 import discord
 from dotenv import load_dotenv
-from discord.ext import commands
+from discord.ext import commands, tasks
 from record import *
 from functions import *
 from magics import *
 from bot import bot
 from lolpark_premium import lolpark_premium
+import datetime
+import pytz
+
+# 한국 시간대 설정
+korea_timezone = pytz.timezone('Asia/Seoul')
 
 # 테스트 할때 아래 사용
 load_dotenv()
 # GitHub Secrets에서 가져오는 값
 TOKEN = os.getenv('DISCORD_TOKEN')
+
+
+@tasks.loop(time=datetime.time(hour=0, minute=0, tzinfo=korea_timezone))
+async def daily_update_total_record():
+    import daily
+
+    korea_time = datetime.datetime.now(korea_timezone)
+    today_date = korea_time.strftime("%Y년 %m월 %d일")
+
+    await daily.update_lolpark_record_message(date=today_date)
 
 
 @bot.event
@@ -132,35 +147,6 @@ async def 기록삭제(ctx, match_id: int):
         await ctx.send(f'기록 삭제 중 오류가 발생했습니다.')
 
 
-
-@bot.command()
-@commands.has_role("LOLPARK PREMIUM")
-async def 모스트밴(ctx):
-
-    id = ctx.author.id
-
-    await ctx.send(get_most_banned_text())
-
-
-@bot.command()
-@commands.has_role("LOLPARK PREMIUM")
-async def 라인별밴(ctx, member: discord.Member = None):
-    return
-    member = ctx.author
-
-    await ctx.send(get_banned_by_lane_text(member))
-
-
-@bot.command()
-@commands.has_role("LOLPARK PREMIUM")
-async def 라인별픽(ctx, member: discord.Member = None):
-    return
-    member = ctx.author
-
-    await ctx.send(get_picked_by_lane_text(member))
-
-
-
 @bot.command()
 @commands.has_role("관리자")
 async def 내전정보(ctx, match_id: int):
@@ -196,6 +182,12 @@ async def 승패변경(ctx, match_id: int, game_number: int):
 async def 죽어라마술사(ctx):
     await ctx.send("아.")
     await bot.close()
+
+
+@bot.command()
+@commands.is_owner()
+async def 테스트(ctx):
+    return
 
 
 # 명령어 에러 처리

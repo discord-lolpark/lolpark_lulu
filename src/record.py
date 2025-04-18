@@ -1,7 +1,7 @@
 import sqlite3
 import discord
 
-matches_db = f"/database/matches.db"
+from config import matches_db
 
 
 # 총 게임 수 가져오기
@@ -125,24 +125,27 @@ def get_summoner_stats_by_channel(member: discord.member):
     }
 
 
-# 전체 게임 밴 리스트 불러오기
-def get_most_banned_champions():
+# 전체 게임 픽 또는 밴 리스트 불러오기
+def get_total_pick_and_ban(is_pick=True):
     conn = sqlite3.connect(matches_db)
     cursor = conn.cursor()
 
-    query = '''
-    SELECT champion, COUNT(*) AS ban_count
-    FROM BANS
+    target_table = "PICKS" if is_pick else "BANS"
+    
+    # 테이블 이름은 문자열 포맷팅으로 직접 쿼리에 삽입
+    query = f'''
+    SELECT champion, COUNT(*) AS count
+    FROM {target_table}
     GROUP BY champion
-    ORDER BY ban_count DESC;
+    ORDER BY count DESC;
     '''
 
     cursor.execute(query)
-    result = cursor.fetchall()  # [(champion, ban_count), ...]
+    result = cursor.fetchall()  # [(champion, count), ...]
 
     conn.close()
 
-    return [{"champion": row[0], "ban_count": row[1]} for row in result]
+    return [{"champion": row[0], "total_count": row[1]} for row in result]
 
 
 # 유저별 라인별로 밴 당한 챔피언 목록

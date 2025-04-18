@@ -79,22 +79,6 @@ def get_summarized_record_text(user: discord.member):
     return result_text
 
 
-# 모스트 밴 TOP 50 text
-def get_most_banned_text():
-    
-    banned_champions = get_most_banned_champions()
-    total_games = get_total_games()
-
-    most_banned_text = f"## 가장 많이 밴 된 챔피언 TOP 50 \n\n"
-
-    for rank, champ in enumerate(banned_champions, start=1):
-        most_banned_text += (f"{rank}위. {get_full_champion_kor_name(champ['champion'])} : {champ['ban_count']}회, ( {round(champ['ban_count'] / total_games * 100, 2)}% )\n")
-        if rank >= 50:
-            break
-
-    return most_banned_text
-
-
 # 유저 라인별 밴 당한 리스트 출력:
 def get_banned_by_lane_text(user: discord.Member):
 
