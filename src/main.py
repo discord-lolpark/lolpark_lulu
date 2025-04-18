@@ -36,7 +36,7 @@ async def on_ready():
 
 @bot.tree.command(name="전적")
 async def find_record(interaction: discord.Interaction, member: discord.Member = None):
-    await interaction.response.defer()
+    await interaction.response.defer(ephemeral=(interaction.channel_id == config.record_search_channel_private_id))
 
     import config
 
@@ -50,19 +50,21 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     lolpark_standard_role = discord.utils.get(member.roles, name='LOLPARK STANDARD')
     lolpark_premium_role = discord.utils.get(member.roles, name='LOLPARK PREMIUM')
     
+    # 비공개 채널인지 확인
+    is_private = (channel_id == config.record_search_channel_private_id)
+    
     # 프리미엄 프로필 생성 및 전송하는 함수
-    async def send_premium_profile(ephemeral=False):
+    async def send_premium_profile():
         profile = await lolpark_premium(member)
         buffer = io.BytesIO()
         profile.save(buffer, format='PNG')
         buffer.seek(0)
         await interaction.followup.send(
-            file=discord.File(buffer, filename=f"{member.id}_profile.png"), 
-            ephemeral=ephemeral
+            file=discord.File(buffer, filename=f"{member.id}_profile.png")
         )
         
     # 일반 프로필 생성 및 전송하는 함수
-    async def send_standard_profile(ephemeral=False):
+    async def send_standard_profile():
         profile_embed = discord.Embed(
             title=f"[ LOLPARK 2025 SPRING SEASON ]",
             description=get_summarized_record_text(member),
@@ -70,7 +72,7 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
         )
         icon_url = member.avatar.url if member.avatar else member.default_avatar.url
         profile_embed.set_author(name=get_nickname(member), icon_url=icon_url)
-        await interaction.followup.send(embed=profile_embed, ephemeral=ephemeral)
+        await interaction.followup.send(embed=profile_embed)
 
     # 관리자 채널: 항상 프리미엄 결과 표시
     if channel_id == config.record_search_channel_administrator_id:
@@ -87,9 +89,9 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     # 비공개 채널
     elif channel_id == config.record_search_channel_private_id:
         if lolpark_premium_role and user_premium_role:
-            await send_premium_profile(ephemeral=True)
+            await send_premium_profile()
         elif lolpark_premium_role or lolpark_standard_role:
-            await send_standard_profile(ephemeral=True)
+            await send_standard_profile()
             return
     
     # 자신의 전적을 조회한 경우 추가 기능 버튼 제공
