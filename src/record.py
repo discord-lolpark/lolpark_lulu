@@ -413,6 +413,7 @@ def get_recent_champion_history(summoner_id, limit=30):
     WHERE 
         p.summoner_id = ?    -- 특정 소환사 ID만 필터링
         AND p.match_id <= 10000
+        AND (p.champion IS NOT NULL AND p.champion != '')  -- champion이 NULL이거나 빈 문자열인 경우 제외
     ORDER BY 
         p.match_id DESC, p.game_index DESC  -- 최신 게임부터 정렬
     LIMIT ?                  -- 지정된 개수만큼만 가져오기
