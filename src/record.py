@@ -412,6 +412,7 @@ def get_recent_champion_history(summoner_id, limit=30):
         GAMES g ON p.match_id = g.match_id AND p.game_index = g.game_index  -- GAMES 테이블과 조인하여 승패 정보 가져오기
     WHERE 
         p.summoner_id = ?    -- 특정 소환사 ID만 필터링
+        AND p.match_id <= 10000
     ORDER BY 
         p.match_id DESC, p.game_index DESC  -- 최신 게임부터 정렬
     LIMIT ?                  -- 지정된 개수만큼만 가져오기
