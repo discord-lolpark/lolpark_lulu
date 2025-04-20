@@ -76,6 +76,7 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     # 관리자 채널: 항상 프리미엄 결과 표시
     if channel_id == config.record_search_channel_administrator_id:
         await send_premium_profile()
+        return
     
     # 전적 열람 멤버가 권한이 아예 없는 경우, 무시
     if not lolpark_premium_role and not lolpark_standard_role:
