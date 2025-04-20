@@ -378,3 +378,54 @@ def get_linewise_game_stats(summoner_id):
     conn.close()
 
     return result
+
+
+def get_recent_champion_history(summoner_id, limit=30):
+    """
+    특정 소환사(summoner_id)의 최근 게임 기록을 조회하는 함수
+    
+    Args:
+        summoner_id (int): 조회할 소환사의 ID
+        limit (int): 가져올 최근 게임 수 (기본값: 30)
+        
+    Returns:
+        list: (match_id, game_index, champion, line, result) 튜플로 구성된 리스트
+    """
+    # 데이터베이스 연결
+    conn = sqlite3.connect(matches_db)
+    db = conn.cursor()
+    
+    # SQL 쿼리 정의
+    query = """
+    SELECT 
+        p.match_id,          -- 매치 ID
+        p.game_index,        -- 게임 인덱스 (동일 매치 내 여러 게임일 경우)
+        p.champion,          -- 플레이한 챔피언
+        p.line,              -- 플레이한 라인
+        CASE 
+            WHEN g.winner_team = p.team_name THEN '승리'   -- 소환사의 팀이 이긴 경우
+            ELSE '패배'                                    -- 소환사의 팀이 진 경우
+        END AS result        -- 게임 결과
+    FROM 
+        PICKS p              -- PICKS 테이블 (챔피언 선택 정보)
+    JOIN 
+        GAMES g ON p.match_id = g.match_id AND p.game_index = g.game_index  -- GAMES 테이블과 조인하여 승패 정보 가져오기
+    WHERE 
+        p.summoner_id = ?    -- 특정 소환사 ID만 필터링
+    ORDER BY 
+        p.match_id DESC, p.game_index DESC  -- 최신 게임부터 정렬
+    LIMIT ?                  -- 지정된 개수만큼만 가져오기
+    """
+    
+    # 쿼리 실행 (파라미터 바인딩)
+    db.execute(query, (summoner_id, limit))
+    
+    # 결과 가져오기
+    results = db.fetchall() # tuple : (match_id, game_index, champion, line, win_or_lose)
+    
+    # 데이터베이스 연결 종료
+    db.close()
+    conn.close()
+    
+    # 결과 반환
+    return results

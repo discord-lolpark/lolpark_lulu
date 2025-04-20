@@ -141,21 +141,6 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
 
 
 @bot.command()
-@commands.has_role("LOLPARK PREMIUM")
-async def 상세전적(ctx):    
-
-    member = ctx.author
-
-    profile = await lolpark_premium(member)
-
-    buffer = io.BytesIO()
-    profile.save(buffer, format='PNG')
-    buffer.seek(0)
-
-    await ctx.send(file=discord.File(buffer, filename=f"{member.id}_profile.png"))
-
-
-@bot.command()
 @commands.is_owner()
 async def 기록삭제(ctx, match_id: int):
 

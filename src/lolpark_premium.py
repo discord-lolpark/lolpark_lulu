@@ -57,6 +57,9 @@ async def get_lolpark_premium_profile(member: discord.Member):
     # 통산 전적 textbox
     full_record_textbox = get_full_record_textbox(member)
 
+    # 최근 전적 image
+    recent_result_image = get_lastly_played_game_result(member)
+
     # 모스트 픽
     most_pick_image = get_most_pick_images(member)
 
@@ -73,12 +76,14 @@ async def get_lolpark_premium_profile(member: discord.Member):
 
     profile.paste(full_record_textbox, (padding, padding * 2 + 100))
 
+    profile.paste(recent_result_image, (padding, padding * 2 + 200))
+
     # 모스트 픽 top 5
-    profile.paste(most_pick_image, (padding, 350))
+    profile.paste(most_pick_image, (padding, 400))
     # 저격밴 top 5
-    profile.paste(most_banned_image, (padding + 500, 350))
+    profile.paste(most_banned_image, (padding + 500, 400))
     # 라인별 승률
-    profile.paste(winrate_by_lane_image, (padding + 500 + 380, 350))
+    profile.paste(winrate_by_lane_image, (padding + 500 + 380, 400))
 
     return profile
 
@@ -389,6 +394,20 @@ def get_most_banned_images(member):
     return most_banned_image.resize((300, 600), Image.Resampling.LANCZOS)
 
 
+def get_lane_logo(line, primary=False):
+
+    # ✅ 원본 이미지 불러오기 (RGBA 모드 유지)
+    line_logo_image = Image.open(f'assets/line_icons/{line}_{"primary" if primary else "normal"}.png').convert("RGBA").resize((100, 100), Image.Resampling.LANCZOS)
+
+    # ✅ 새로운 배경 생성 (예: skyblue)
+    background = Image.new("RGBA", (100, 100), "skyblue")
+
+    # ✅ 투명한 부분을 skyblue로 채운 이미지 생성
+    background.paste(line_logo_image, (0, 0), line_logo_image)
+
+    return background
+
+
 # 라인별 승률 나열
 def get_most_selected_lane(member):
     
@@ -406,23 +425,10 @@ def get_most_selected_lane(member):
 
     line_record = get_linewise_game_stats(member.id) # (라인 이름(영어), 총 게임 수, 승, 패, 승률)
 
-    def get_lane_logo(line):
-
-        # ✅ 원본 이미지 불러오기 (RGBA 모드 유지)
-        line_logo_image = Image.open(f'assets/line_icons/{line}_{"primary" if primary else "normal"}.png').convert("RGBA").resize((100, 100), Image.Resampling.LANCZOS)
-
-        # ✅ 새로운 배경 생성 (예: skyblue)
-        background = Image.new("RGBA", (100, 100), "skyblue")
-
-        # ✅ 투명한 부분을 skyblue로 채운 이미지 생성
-        background.paste(line_logo_image, (0, 0), line_logo_image)
-
-        return background
-
     def get_record_by_lane(line, games, win, lose, win_rate, primary=False):
 
         record_image = Image.new('RGB', (700, 140), 'skyblue')
-        line_image = get_lane_logo(line)
+        line_image = get_lane_logo(line, primary=primary)
 
         line_name_textbox = get_textbox(x=100, y=40, text=get_kor_line_name(line), font_path=font_paths["ownglyph"], max_font_size=40, min_font_size=40, padding=5, font_color='black')
         record_text = f"{games}전 {win}승 {lose}패 ({win_rate}%)"
@@ -448,7 +454,60 @@ def get_most_selected_lane(member):
     return lane_record_image.resize((420, 600), Image.Resampling.LANCZOS)
 
 
+# 최근 전적 나열 (최근 10개 게임?)
+def get_lastly_played_game_result(member):
 
+    from record import get_recent_champion_history
+
+    recent_result_image = Image.new('RGB', (w, 200), 'skyblue')
+
+    recent_x = 60
+    recent_y = 80
+
+    recent_result = get_recent_champion_history(member.id)
+
+    def get_result_per_champion(match_id: int, game_index: int, champion_eng: str, line: str, is_win: bool):
+
+        result_per_champion_image = Image.new('RGB', (recent_x, recent_y), 'skyblue')
+
+        draw = ImageDraw.Draw(result_per_champion_image)
+
+        game_info_textbox = get_textbox(recent_x, recent_y // 4, f"#{match_id}({game_index})", font_paths['cookierun'], font_color='gray')
+
+        champion_image = Image.open(f"assets/champions/square/{champion_eng}.png").resize((recent_x, recent_y * 3 // 4), Image.Resampling.LANCZOS)
+
+        result_per_champion_image.paste(game_info_textbox, (0, 0))
+        result_per_champion_image.paste(champion_image, (0, recent_y // 4))
+
+        result_text = f"{'W' if is_win else 'L'}"
+        result_font = ImageFont.truetype(font_paths['cookierun'], 25)
+
+        bbox = draw.textbbox((0, 0), result_text, font=result_font)
+        
+        # 텍스트 실제 너비와 높이 계산
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+
+        result_x = (recent_x - text_width) / 2
+        result_y = (recent_y - text_height)
+        draw.text((result_x, result_y - recent_y // 10), result_text, fill=f"{'gold' if is_win else 'silver'}", font=result_font)
+
+        return result_per_champion_image
+
+    recent_textbox = get_textbox(recent_x * 4, recent_y, f"최근 전적 : ", font_paths["cookierun"], font_color='black')
+
+    recent_result_image.paste(recent_textbox, (0, 0))
+
+    for index, (match_id, game_index, champion_eng, line, result) in enumerate(recent_result):
+
+        if index >= 20:
+            break
+
+        is_win = True if result == "승리" else False
+
+        recent_result_image.paste(get_result_per_champion(match_id, game_index, champion_eng, line, is_win), (recent_x * 4 + recent_x * index, 0))
+
+    return recent_result_image
 
 
 
