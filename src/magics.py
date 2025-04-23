@@ -12,7 +12,7 @@ def calculate_win_rate(win: int, lose: int) -> float:
 
 
 # 요약 전적 가져오기 (/전적 사용시)
-def get_summarized_record_text(user: discord.member):
+def get_summarized_record_text(user: discord.member, for_qualification=False):
 
     summoner_stats_by_channel = get_summoner_stats_by_channel(user)
 
@@ -69,6 +69,9 @@ def get_summarized_record_text(user: discord.member):
     total_games = total_win + total_lose
     total_winrate = calculate_win_rate(total_win, total_lose)
 
+    if for_qualification:
+        return f"# 내전 참여 횟수 : {total_games}회"
+    
     result_text = f'## 전체 내전 전적 : {total_games}전 {total_win}승 {total_lose}패 ( {total_winrate}% )\n'
 
     result_text += get_channel_record_message(record_by_channel, channel_name="FEARLESS")
@@ -77,6 +80,7 @@ def get_summarized_record_text(user: discord.member):
     result_text += get_channel_record_message(record_by_channel, channel_name="TWENTY")
     
     return result_text
+
 
 
 # 유저 라인별 밴 당한 리스트 출력:

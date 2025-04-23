@@ -63,15 +63,20 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
         )
         
     # 일반 프로필 생성 및 전송하는 함수
-    async def send_standard_profile():
+    async def send_standard_profile(for_qualification=False):
         profile_embed = discord.Embed(
             title=f"[ LOLPARK 2025 SPRING SEASON ]",
-            description=get_summarized_record_text(member),
+            description=get_summarized_record_text(member, for_qualification),
             color=discord.Color.pink()
         )
         icon_url = member.avatar.url if member.avatar else member.default_avatar.url
         profile_embed.set_author(name=get_nickname(member), icon_url=icon_url)
         await interaction.followup.send(embed=profile_embed)
+
+    # 대회 참가용 여부 확인
+    if channel_id == config.qualify_channel_id:
+        await send_standard_profile(for_qualification=True)
+        return
 
     # 관리자 채널: 항상 프리미엄 결과 표시
     if channel_id == config.record_search_channel_administrator_id:
