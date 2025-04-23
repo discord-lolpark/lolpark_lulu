@@ -498,14 +498,21 @@ def get_lastly_played_game_result(member):
 
     recent_result_image.paste(recent_textbox, (0, 0))
 
+    count = 0
+
     for index, (match_id, game_index, champion_eng, line, result) in enumerate(recent_result):
 
-        if index >= 20:
+        if count >= 20:
             break
 
         is_win = True if result == "승리" else False
 
+        if champion_eng is None or champion_eng == "":
+            continue
+
         recent_result_image.paste(get_result_per_champion(match_id, game_index, champion_eng, line, is_win), (recent_x * 4 + recent_x * index, 0))
+
+        count += 1
 
     return recent_result_image
 
