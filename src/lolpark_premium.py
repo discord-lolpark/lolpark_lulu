@@ -510,7 +510,7 @@ def get_lastly_played_game_result(member):
         if champion_eng is None or champion_eng == "" or champion_eng == "None":
             continue
 
-        recent_result_image.paste(get_result_per_champion(match_id, game_index, champion_eng, line, is_win), (recent_x * 4 + recent_x * index, 0))
+        recent_result_image.paste(get_result_per_champion(match_id, game_index, champion_eng, line, is_win), (recent_x * 4 + recent_x * count, 0))
 
         count += 1
 
