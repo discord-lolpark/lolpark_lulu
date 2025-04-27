@@ -507,7 +507,7 @@ def get_lastly_played_game_result(member):
 
         is_win = True if result == "승리" else False
 
-        if champion_eng is None or champion_eng == "":
+        if champion_eng is None or champion_eng == "" or champion_eng == "None":
             continue
 
         recent_result_image.paste(get_result_per_champion(match_id, game_index, champion_eng, line, is_win), (recent_x * 4 + recent_x * index, 0))
