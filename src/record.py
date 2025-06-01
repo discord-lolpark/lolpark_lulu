@@ -92,7 +92,7 @@ def get_summoner_stats(member: discord.member):
         ON P.match_id = G.match_id AND P.game_index = G.game_index
         JOIN MATCHES M
         ON P.match_id = M.match_id
-        WHERE P.summoner_id = ? AND P.match_id >= 1500 AND P.match_id < 1000000
+        WHERE P.summoner_id = ? AND P.match_id >= 1500 AND P.match_id < 50000
     )
     SELECT 
         COUNT(*) AS total_games,
