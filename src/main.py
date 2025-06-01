@@ -49,7 +49,6 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     if member is None:
         member = interaction.user
 
-    lolpark_standard_role = discord.utils.get(member.roles, name='LOLPARK STANDARD')
     lolpark_premium_role = discord.utils.get(member.roles, name='LOLPARK PREMIUM')
     
     # 프리미엄 프로필 생성 및 전송하는 함수
@@ -65,44 +64,33 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     # 일반 프로필 생성 및 전송하는 함수
     async def send_standard_profile(for_qualification=False):
         profile_embed = discord.Embed(
-            title=f"[ LOLPARK 2025 SPRING SEASON ]",
+            title=f"[ LOLPARK 2025 SUMMER SEASON ]",
             description=get_summarized_record_text(member, for_qualification),
-            color=discord.Color.pink()
+            color=discord.Color.blue()
         )
         icon_url = member.avatar.url if member.avatar else member.default_avatar.url
         profile_embed.set_author(name=get_nickname(member), icon_url=icon_url)
         await interaction.followup.send(embed=profile_embed)
-
-    # 대회 참가용 여부 확인
-    if channel_id == config.qualify_channel_id:
-        await send_standard_profile(for_qualification=True)
-        return
 
     # 관리자 채널: 항상 프리미엄 결과 표시
     if channel_id == config.record_search_channel_administrator_id:
         await send_premium_profile()
         return
     
-    # 전적 열람 멤버가 권한이 아예 없는 경우, 무시
-    if not lolpark_premium_role and not lolpark_standard_role:
-        await interaction.followup.send(f"대상의 전적 열람 권한이 없습니다.", ephemeral=True)
-        return
-    
     # 공개 채널
     if channel_id == config.record_search_channel_public_id:
         if lolpark_premium_role and user_premium_role:
             await send_premium_profile()
-        elif lolpark_premium_role or lolpark_standard_role:
+        else:
             await send_standard_profile()
-            return
     
     # 비공개 채널
     if channel_id == config.record_search_channel_private_id:
         if lolpark_premium_role and user_premium_role:
             await send_premium_profile()
-        elif lolpark_premium_role or lolpark_standard_role:
-            await send_standard_profile()
-            return
+
+    if not (lolpark_premium_role and user_premium_role): 
+        return
     
     # 자신의 전적을 조회한 경우 추가 기능 버튼 제공
     if member == user:
@@ -198,6 +186,20 @@ async def 죽어라마술사(ctx):
 @commands.is_owner()
 async def 테스트(ctx):
     return
+
+
+@bot.tree.command()
+async def 최근전적(interaction: discord.Interaction):
+
+    from last_record import get_personal_game_result_image
+
+    result_image = get_personal_game_result_image(interaction)
+
+    buffer = io.BytesIO()
+    result_image.save(buffer, format='PNG')
+    buffer.seek(0)
+
+    await interaction.channel.send(file=discord.File(buffer, filename=f"test.png"))
 
 
 # 명령어 에러 처리

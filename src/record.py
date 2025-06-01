@@ -76,8 +76,8 @@ def get_champions_by_lane_with_winrate(summoner_id):
     return lane_stats
 
 
-# 채널별 승,패 승률 가져오기
-def get_summoner_stats_by_channel(member: discord.member):
+# 전체 승,패 승률 가져오기 (match_id >= 1500)
+def get_summoner_stats(member: discord.member):
     
     summoner_id = member.id
 
@@ -86,16 +86,15 @@ def get_summoner_stats_by_channel(member: discord.member):
 
     query = '''
     WITH PlayerGames AS (
-        SELECT M.channel, P.team_name, G.winner_team
+        SELECT P.team_name, G.winner_team
         FROM PICKS P
         JOIN GAMES G
         ON P.match_id = G.match_id AND P.game_index = G.game_index
         JOIN MATCHES M
         ON P.match_id = M.match_id
-        WHERE P.summoner_id = ?
+        WHERE P.summoner_id = ? AND P.match_id >= 1500
     )
     SELECT 
-        channel,
         COUNT(*) AS total_games,
         SUM(CASE WHEN team_name = winner_team THEN 1 ELSE 0 END) AS wins,
         SUM(CASE WHEN team_name != winner_team THEN 1 ELSE 0 END) AS loses,
@@ -104,25 +103,28 @@ def get_summoner_stats_by_channel(member: discord.member):
             NULLIF(COUNT(*), 0), 
             2
         ) AS win_rate
-    FROM PlayerGames
-    GROUP BY channel
-    ORDER BY channel ASC;
+    FROM PlayerGames;
     '''
 
     cursor.execute(query, (summoner_id,))
-    result = cursor.fetchall()  # [(channel, total_games, wins, loses, win_rate), ...]
+    result = cursor.fetchone()  # (total_games, wins, loses, win_rate)
 
     conn.close()
 
-    return {
-        row[0]: {
-            "total_games": row[1],
-            "wins": row[2],
-            "loses": row[3],
-            "win_rate": row[4]
+    if result and result[0] > 0:  # 게임이 있는 경우
+        return {
+            "total_games": result[0],
+            "wins": result[1],
+            "loses": result[2],
+            "win_rate": result[3]
         }
-        for row in result
-    }
+    else:  # 게임이 없는 경우
+        return {
+            "total_games": 0,
+            "wins": 0,
+            "loses": 0,
+            "win_rate": 0.0
+        }
 
 
 # 전체 게임 픽 또는 밴 리스트 불러오기
