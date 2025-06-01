@@ -3,3 +3,4 @@ venv/
 src/.env
 src/__pycache__
 database/
+matches.db

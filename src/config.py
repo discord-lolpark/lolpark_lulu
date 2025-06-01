@@ -26,4 +26,9 @@ total_record_ban_message_id = 1362788613359669468
 total_record_pick_message_id = 1362788614911557854
 
 # DB path
-matches_db = f"/database/matches.db"
+import os
+matches_db = "C:/Users/Desktop/matches.db" if os.path.exists("C:/Users/Desktop/matches.db") else f"/database/matches.db"
+
+# 현재 시즌 
+now_year = 2025
+now_season = "summer"
