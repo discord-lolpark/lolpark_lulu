@@ -61,9 +61,15 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
         buffer = io.BytesIO()
         profile.save(buffer, format='PNG')
         buffer.seek(0)
-        await interaction.followup.send(
-            file=discord.File(buffer, filename=f"{member.id}_profile.png")
-        )
+        if interaction.channel_id == config.record_search_channel_private_id:
+            await interaction.followup.send(
+            file=discord.File(buffer, filename=f"{member.id}_profile.png"),
+            ephemeral=True
+            )
+        else:
+            await interaction.channel.send(
+                file=discord.File(buffer, filename=f"{member.id}_profile.png")
+            )
         
     # 일반 프로필 생성 및 전송하는 함수
     async def send_standard_profile(for_qualification=False):
