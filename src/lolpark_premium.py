@@ -472,6 +472,9 @@ def get_lastly_played_game_result(member, start_id, end_id):
     recent_x = 60
     recent_y = 80
 
+    if end_id > 100000000:
+        end_id = 1000000
+
     recent_result = get_recent_champion_history(member.id, start_id, end_id)
 
     def get_result_per_champion(match_id: int, game_index: int, champion_eng: str, line: str, is_win: bool):
