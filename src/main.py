@@ -54,7 +54,7 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     # 프리미엄 프로필 생성 및 전송하는 함수
     async def send_premium_profile():
         stat_view, future = await lolpark_premium(member)
-        message = await interaction.channel.send("시즌을 선택하세요:", view=stat_view)
+        message = await interaction.followup.send("시즌을 선택하세요:", view=stat_view, ephemeral=True)
         stat_view.message = message
         profile = await future
         await stat_view.message.delete()
