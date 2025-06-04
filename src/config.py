@@ -29,6 +29,32 @@ total_record_pick_message_id = 1362788614911557854
 import os
 matches_db = "C:/Users/Desktop/matches.db" if os.path.exists("C:/Users/Desktop/matches.db") else f"/database/matches.db"
 
+
+# font_path들 모음
+font_paths = {
+    'cookierun': 'assets/fonts/CookieRun.ttf',
+    'notosans': 'assets/fonts/NotoSansKR.ttf',
+    'ownglyph': 'assets/fonts/Ownglyph.ttf',
+    'pyeongchang': 'assets/fonts/pyeongchang.ttf',
+    'gangwon': 'assets/fonts/gangwon.ttf',
+    'jamsil': 'assets/fonts/Jamsil.ttf'
+}
+
+
 # 현재 시즌 
 now_year = 2025
 now_season = "summer"
+
+# 대회 코드별 이름
+tournament_name_dict = {
+    802: "2nd_low_tier",
+    704: "4th_lolpark_cup"
+}
+
+# match_id별 시즌 분기
+division_matchid_dict = {
+    "2025 SPRING": (0, 1500),
+    "2025 SUMMER": (1501, 3000),
+    "제 2회 저티어 대회": (8020001, 8049999),
+    "제 4회 이벤트 대회": (7040001, 7049999)
+}

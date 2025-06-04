@@ -17,6 +17,20 @@ def get_total_games():
     return total_games
 
 
+# 인원별 게임 수 가져오기
+def get_personal_games_total(start_id: int = 0, end_id: int = 9999999999, summoner_id: int = None):
+    conn = sqlite3.connect(matches_db)
+    cursor = conn.cursor()
+
+    query = "SELECT COUNT(*) FROM PICKS WHERE summoner_id = ? AND match_id > ? AND match_id < ?;"
+
+    cursor.execute(query, (summoner_id, start_id, end_id))
+    total_games = cursor.fetchone()[0]  
+
+    conn.close()
+    return total_games
+
+
 # 라인별 챔피언 승률 가져오기
 def get_champions_by_lane_with_winrate(summoner_id):
     conn = sqlite3.connect(matches_db)
@@ -76,8 +90,8 @@ def get_champions_by_lane_with_winrate(summoner_id):
     return lane_stats
 
 
-# 전체 승,패 승률 가져오기 (match_id >= 1500)
-def get_summoner_stats(member: discord.member):
+# 전체 승,패 승률 가져오기
+def get_summoner_stats(member: discord.Member, start_id, end_id):
     
     summoner_id = member.id
 
@@ -92,7 +106,7 @@ def get_summoner_stats(member: discord.member):
         ON P.match_id = G.match_id AND P.game_index = G.game_index
         JOIN MATCHES M
         ON P.match_id = M.match_id
-        WHERE P.summoner_id = ? AND P.match_id >= 1500 AND P.match_id < 50000
+        WHERE P.summoner_id = ? AND P.match_id >= ? AND P.match_id < ?
     )
     SELECT 
         COUNT(*) AS total_games,
@@ -106,7 +120,7 @@ def get_summoner_stats(member: discord.member):
     FROM PlayerGames;
     '''
 
-    cursor.execute(query, (summoner_id,))
+    cursor.execute(query, (summoner_id, start_id, end_id))
     result = cursor.fetchone()  # (total_games, wins, loses, win_rate)
 
     conn.close()
@@ -151,7 +165,7 @@ def get_total_pick_and_ban(is_pick=True):
 
 
 # 유저별 라인별로 밴 당한 챔피언 목록
-def get_banned_champions_by_position(summoner_id):
+def get_banned_champions_by_position(summoner_id, start_id, end_id):
     conn = sqlite3.connect(matches_db)
     cursor = conn.cursor()
 
@@ -162,7 +176,7 @@ def get_banned_champions_by_position(summoner_id):
                 WHEN P.team_name = 'team_2' THEN 'team_1' 
             END AS opposite_team
         FROM PICKS P
-        WHERE P.summoner_id = ?
+        WHERE P.summoner_id = ? AND P.match_id > ? AND P.match_id < ?
     ),
     LaneGames AS (
         SELECT line, COUNT(DISTINCT match_id || '-' || game_index) AS total_games
@@ -209,7 +223,7 @@ def get_banned_champions_by_position(summoner_id):
 
     '''
 
-    cursor.execute(query, (summoner_id,))
+    cursor.execute(query, (summoner_id, start_id, end_id))
     result = cursor.fetchall()  # [(position, champion, ban_count), ...]
 
     conn.close()
@@ -326,7 +340,7 @@ def get_summoners_by_match(match_id):
 
 
 # 모스트 픽 가져오기
-def get_most_picked_champions(summoner_id):
+def get_most_picked_champions(summoner_id, start_id, end_id):
     conn = sqlite3.connect(matches_db)
     cursor = conn.cursor()
 
@@ -337,7 +351,7 @@ def get_most_picked_champions(summoner_id):
                SUM(CASE WHEN P.team_name != G.winner_team THEN 1 ELSE 0 END) AS losses
         FROM PICKS P
         JOIN GAMES G ON P.match_id = G.match_id AND P.game_index = G.game_index
-        WHERE P.summoner_id = ?
+        WHERE P.summoner_id = ? AND P.match_id > ? AND P.match_id < ?
         GROUP BY champion
     )
     SELECT champion, pick_count, wins, losses, 
@@ -346,7 +360,7 @@ def get_most_picked_champions(summoner_id):
     ORDER BY pick_count DESC, win_rate DESC;
     '''
 
-    cursor.execute(query, (summoner_id,))
+    cursor.execute(query, (summoner_id, start_id, end_id))
     result = cursor.fetchall()  # [(champion, pick_count, wins, losses, win_rate), ...]
 
     conn.close()
@@ -354,7 +368,7 @@ def get_most_picked_champions(summoner_id):
     return result
 
 
-def get_linewise_game_stats(summoner_id):
+def get_linewise_game_stats(summoner_id, start_id, end_id):
     conn = sqlite3.connect(matches_db)
     cursor = conn.cursor()
 
@@ -366,7 +380,7 @@ def get_linewise_game_stats(summoner_id):
                ROUND((SUM(CASE WHEN P.team_name = G.winner_team THEN 1 ELSE 0 END) * 100.0) / NULLIF(COUNT(*), 0), 2) AS win_rate
         FROM PICKS P
         JOIN GAMES G ON P.match_id = G.match_id AND P.game_index = G.game_index
-        WHERE P.summoner_id = ?
+        WHERE P.summoner_id = ? AND P.match_id > ? AND P.match_id < ?
         GROUP BY P.line
     )
     SELECT line, total_games, wins, losses, win_rate
@@ -374,7 +388,7 @@ def get_linewise_game_stats(summoner_id):
     ORDER BY total_games DESC, win_rate DESC;
     '''
 
-    cursor.execute(query, (summoner_id,))
+    cursor.execute(query, (summoner_id, start_id, end_id))
     result = cursor.fetchall()  # [(line, total_games, wins, losses, win_rate), ...]
 
     conn.close()
@@ -382,7 +396,7 @@ def get_linewise_game_stats(summoner_id):
     return result
 
 
-def get_recent_champion_history(summoner_id, limit=30):
+def get_recent_champion_history(summoner_id, start_id, end_id, limit=30):
     """
     특정 소환사(summoner_id)의 최근 게임 기록을 조회하는 함수
     
@@ -414,7 +428,8 @@ def get_recent_champion_history(summoner_id, limit=30):
         GAMES g ON p.match_id = g.match_id AND p.game_index = g.game_index  -- GAMES 테이블과 조인하여 승패 정보 가져오기
     WHERE 
         p.summoner_id = ?    -- 특정 소환사 ID만 필터링
-        AND p.match_id <= 10000
+        AND p.match_id > ?
+        AND p.match_id < ?
         AND (p.champion IS NOT NULL AND p.champion != '')  -- champion이 NULL이거나 빈 문자열인 경우 제외
     ORDER BY 
         p.match_id DESC, p.game_index DESC  -- 최신 게임부터 정렬
@@ -422,7 +437,7 @@ def get_recent_champion_history(summoner_id, limit=30):
     """
     
     # 쿼리 실행 (파라미터 바인딩)
-    db.execute(query, (summoner_id, limit))
+    db.execute(query, (summoner_id, start_id, end_id, limit))
     
     # 결과 가져오기
     results = db.fetchall() # tuple : (match_id, game_index, champion, line, win_or_lose)
