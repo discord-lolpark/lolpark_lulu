@@ -14,7 +14,7 @@ def calculate_win_rate(win: int, lose: int) -> float:
 # 요약 전적 가져오기 (/전적 사용시, 일반 서버원)
 def get_summarized_record_text(user: discord.member, for_qualification=False):
 
-    stat_dict = get_summoner_stats(user, 0, 999999999)
+    stat_dict = get_summoner_stats(user, 1500, 5000)
 
     total_games = stat_dict["total_games"]
     total_win = stat_dict["wins"]
