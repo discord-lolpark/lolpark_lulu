@@ -19,7 +19,7 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 
-@tasks.loop(time=datetime.time(hour=0, minute=0, tzinfo=korea_timezone))
+@tasks.loop(time=datetime.time(hour=12, minute=0, tzinfo=korea_timezone))
 async def daily_update_total_record():
     import daily
 

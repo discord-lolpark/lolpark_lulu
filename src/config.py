@@ -41,9 +41,8 @@ font_paths = {
 }
 
 
-# 현재 시즌 
-now_year = 2025
-now_season = "summer"
+# 현재 시즌
+now_season = "2025 SUMMER"
 
 # 대회 코드별 이름
 tournament_name_dict = {

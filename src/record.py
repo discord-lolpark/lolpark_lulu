@@ -5,12 +5,12 @@ from config import matches_db
 
 
 # 총 게임 수 가져오기
-def get_total_games():
+def get_total_games(start_id: int = 0, end_id: int = 9999999999):
     conn = sqlite3.connect(matches_db)
     cursor = conn.cursor()
 
-    query = "SELECT COUNT(*) FROM GAMES;"
-    cursor.execute(query)
+    query = "SELECT COUNT(*) FROM GAMES WHERE match_id > ? AND match_id < ?;"
+    cursor.execute(query, (start_id, end_id))
     total_games = cursor.fetchone()[0]
 
     conn.close()
@@ -142,7 +142,7 @@ def get_summoner_stats(member: discord.Member, start_id, end_id):
 
 
 # 전체 게임 픽 또는 밴 리스트 불러오기
-def get_total_pick_and_ban(is_pick=True):
+def get_total_pick_and_ban(is_pick=True, start_id=0, end_id=9999999999):
     conn = sqlite3.connect(matches_db)
     cursor = conn.cursor()
 
@@ -153,10 +153,11 @@ def get_total_pick_and_ban(is_pick=True):
     SELECT champion, COUNT(*) AS count
     FROM {target_table}
     GROUP BY champion
-    ORDER BY count DESC;
+    ORDER BY count DESC
+    WHERE match_id > ? AND match_id < ?;
     '''
 
-    cursor.execute(query)
+    cursor.execute(query, (start_id, end_id))
     result = cursor.fetchall()  # [(champion, count), ...]
 
     conn.close()
