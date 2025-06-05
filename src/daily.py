@@ -1,5 +1,6 @@
 import config
 import functions
+import discord
 from bot import bot
 
 async def update_lolpark_record_message(date=""):
