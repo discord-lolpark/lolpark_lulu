@@ -170,10 +170,43 @@ async def apply(interaction: discord.Interaction, member: discord.Member = None)
     )
 
 
+@bot.tree.command(name="티어조정투표")
+async def start_tier_vote(interaction: discord.Interaction, target_channel: discord.TextChannel = None):
+    
+    from tier_adjust.vote_tier_adjust import TierAdjustVoteView
+
+    if target_channel is None:
+        target_channel = interaction.channel
+    
+    # 스레드인지 확인
+    if not isinstance(target_channel, discord.Thread):
+        await interaction.response.send_message("스레드에서 투표를 진행해주세요.", ephemeral=True)
+        return
+
+    # 채널 이름에서 멤버 정보 추출
+    if "티어조정" not in target_channel.name:
+        await interaction.response.send_message("티어조정 채널이 아닙니다.", ephemeral=True)
+        return
+    
+    # 채널 이름에서 멤버 닉네임 추출 (예: "닉네임 티어조정")
+    member_name = target_channel.name.replace(" 티어조정", "").strip()
+    
+    vote_view = TierAdjustVoteView(member_name, target_channel)
+    
+    embed = discord.Embed(
+        title="🗳️ 티어 조정 투표",
+        description=f"**{member_name}님**의 티어 조정에 대해 투표해주세요.\n\n"
+                   f"• **상승/하락** 선택 후 구체적인 티어를 입력하세요\n"
+                   f"• 유지를 선택하면 현재 티어를 유지합니다",
+        color=discord.Color.blue()
+    )
+    
+    await interaction.response.send_message(embed=embed, view=vote_view)
+
+
 @bot.command()
 @commands.is_owner()
 async def 기록삭제(ctx, match_id: int):
-
     try:
         delete_match_data(match_id)
         await ctx.send(f'{match_id}번 내전 기록을 삭제했습니다.')
