@@ -33,6 +33,8 @@ async def daily_update_total_record():
 async def on_ready():
     await bot.tree.sync(guild=discord.Object(id=1287065134652457020))
     await bot.tree.sync(guild=discord.Object(id=1307582840153702431))
+    print(f'등록된 명령어 수: {len(bot.tree.get_commands())}')
+    print(f'명령어 목록: {[cmd.name for cmd in bot.tree.get_commands()]}')
     print("동기화 완료")
 
 
