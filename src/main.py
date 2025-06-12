@@ -148,8 +148,8 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
         )
 
 
-@bot.tree.command()
-async def 티어조정신청(interaction: discord.Interaction, member: discord.Member = None):
+@bot.tree.command(name="티어조정신청")
+async def apply(interaction: discord.Interaction, member: discord.Member = None):
 
     from tier_adjust import apply_tier_adjust
 
