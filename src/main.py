@@ -184,12 +184,12 @@ async def start_tier_vote(interaction: discord.Interaction, target_channel: disc
         return
 
     # 채널 이름에서 멤버 정보 추출
-    if "티어조정" not in target_channel.name:
-        await interaction.response.send_message("티어조정 채널이 아닙니다.", ephemeral=True)
+    if "자문단 토론" not in target_channel.name:
+        await interaction.response.send_message("티어조정 스레드가 아닙니다.", ephemeral=True)
         return
     
     # 채널 이름에서 멤버 닉네임 추출 (예: "닉네임 티어조정")
-    member_name = target_channel.name.replace(" 티어조정", "").strip()
+    member_name = target_channel.name.replace(" 자문단 토론", "").strip()
     
     vote_view = TierAdjustVoteView(member_name, target_channel)
     
