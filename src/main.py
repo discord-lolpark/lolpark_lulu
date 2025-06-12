@@ -31,7 +31,9 @@ async def daily_update_total_record():
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
+    await bot.tree.sync(guild=discord.Object(id=1287065134652457020))
+    await bot.tree.sync(guild=discord.Object(id=1307582840153702431))
+    print("동기화 완료")
 
 
 @bot.tree.command(name="전적")
