@@ -149,7 +149,15 @@ async def apply(interaction: discord.Interaction, member: discord.Member = None)
 
     from tier_adjust.main_tier_adjust import apply_tier_adjust
 
-    await apply_tier_adjust(interaction=interaction, member=member)
+    await interaction.response.defer(ephemeral=True)
+    channel_id = await apply_tier_adjust(interaction=interaction, member=member)
+    await interaction.followup.send(
+        content=(
+            f"티어 조정 신청이 완료되었습니다.\n"
+            f"<#{channel_id}> 로 이동하여 메세지 보내기"
+        ),
+        ephemeral=True
+    )
 
 
 @bot.command()

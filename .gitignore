@@ -2,5 +2,6 @@ venv/
 .idea/
 src/.env
 src/__pycache__
+src/tier_adjust/__pycache__
 database/
 matches.db

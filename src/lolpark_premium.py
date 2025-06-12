@@ -15,6 +15,41 @@ def calculate_win_rate(win: int, lose: int) -> float:
     return round(win_rate, 2)  # 소수점 셋째 자리에서 반올림
 
 
+async def send_tier_adjust_profile(channel, member: discord.Member):
+    from record import get_personal_games_total
+
+    try:
+        # 전체 프로필 전송
+        total_profile = await get_lolpark_premium_profile(member, 0, 9999999999)
+        with io.BytesIO() as total_buffer:
+            total_profile.save(total_buffer, format='PNG')
+            total_buffer.seek(0)
+            await channel.send(file=discord.File(total_buffer, filename=f"total_profile.png"))
+        
+        # 시즌별 프로필 전송
+        for season_category, (start_id, end_id) in division_matchid_dict.items():
+            
+            # 대회 내용은 전송 X
+            if start_id > 1000000:
+                continue
+
+            season_games = get_personal_games_total(start_id=start_id, end_id=end_id, summoner_id=member.id)
+
+            if season_games > 0:
+                try:
+                    season_profile = await get_lolpark_premium_profile(member, start_id, end_id)
+                    with io.BytesIO() as season_buffer:
+                        season_profile.save(season_buffer, format='PNG')
+                        season_buffer.seek(0)
+                        await channel.send(file=discord.File(season_buffer, filename=f"{season_category}_profile.png"))
+                except Exception as e:
+                    print(f"시즌 {season_category} 프로필 생성 실패: {e}")
+                    continue
+
+    except Exception as e:
+        print(f"프로필 전송 중 오류 발생: {e}")
+        await channel.send("프로필 생성 중 오류가 발생했습니다.")
+
 async def lolpark_premium(member: discord.Member):
 
     from record import get_personal_games_total
