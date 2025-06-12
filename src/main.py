@@ -31,11 +31,7 @@ async def daily_update_total_record():
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync(guild=discord.Object(id=1287065134652457020))
-    await bot.tree.sync(guild=discord.Object(id=1307582840153702431))
-    print(f'등록된 명령어 수: {len(bot.tree.get_commands())}')
-    print(f'명령어 목록: {[cmd.name for cmd in bot.tree.get_commands()]}')
-    print("동기화 완료")
+    await bot.tree.sync()
 
 
 @bot.tree.command(name="전적")
@@ -155,7 +151,10 @@ async def apply(interaction: discord.Interaction, member: discord.Member = None)
 
     await apply_tier_adjust(interaction=interaction, member=member)
 
+@bot.tree.command(name="마술사테스트")
+async def apply(interaction: discord.Interaction, member: discord.Member = None):
 
+    return
 
 @bot.command()
 @commands.is_owner()
