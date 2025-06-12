@@ -14,6 +14,11 @@ class TierAdjustVoteView(discord.ui.View):
     
     @discord.ui.button(label="티어 상승", style=discord.ButtonStyle.success, emoji="⬆️")
     async def vote_up(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # 자문단만 투표 가능
+        advisor_role = discord.utils.get(interaction.guild.roles, name="티어 조정 자문단")
+        if advisor_role not in interaction.user.roles:
+            await interaction.response.send_message("자문단만 투표할 수 있습니다.", ephemeral=True)
+            return
         modal = TierInputModal("상승", self.member_name)
         modal.vote_view = self
         await interaction.response.send_modal(modal)
@@ -21,6 +26,12 @@ class TierAdjustVoteView(discord.ui.View):
     @discord.ui.button(label="티어 유지", style=discord.ButtonStyle.secondary, emoji="➡️")
     async def vote_maintain(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = interaction.user.id
+
+        # 자문단만 투표 가능
+        advisor_role = discord.utils.get(interaction.guild.roles, name="티어 조정 자문단")
+        if advisor_role not in interaction.user.roles:
+            await interaction.response.send_message("자문단만 투표할 수 있습니다.", ephemeral=True)
+            return
         
         # 기존 투표 제거
         self.remove_existing_vote(user_id)
@@ -33,6 +44,11 @@ class TierAdjustVoteView(discord.ui.View):
     
     @discord.ui.button(label="티어 하락", style=discord.ButtonStyle.danger, emoji="⬇️")
     async def vote_down(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # 자문단만 투표 가능
+        advisor_role = discord.utils.get(interaction.guild.roles, name="티어 조정 자문단")
+        if advisor_role not in interaction.user.roles:
+            await interaction.response.send_message("자문단만 투표할 수 있습니다.", ephemeral=True)
+            return
         modal = TierInputModal("하락", self.member_name)
         modal.vote_view = self
         await interaction.response.send_modal(modal)

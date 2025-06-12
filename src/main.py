@@ -175,6 +175,12 @@ async def start_tier_vote(interaction: discord.Interaction, target_channel: disc
     
     from tier_adjust.vote_tier_adjust import TierAdjustVoteView
 
+    # 자문단만 투표 가능
+    advisor_role = discord.utils.get(interaction.guild.roles, name="티어 조정 자문단")
+    if advisor_role not in interaction.user.roles:
+        await interaction.response.send_message("자문단만 진행할 수 있습니다.", ephemeral=True)
+        return
+
     if target_channel is None:
         target_channel = interaction.channel
     
