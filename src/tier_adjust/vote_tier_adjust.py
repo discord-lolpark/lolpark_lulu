@@ -54,18 +54,19 @@ class TierAdjustVoteView(discord.ui.View):
         self.votes["하락"].pop(user_id, None)
     
     def _truncate_field_value(self, value: str, max_length: int = 1024) -> str:
-        """Discord embed field 길이 제한 처리"""
         if len(value) <= max_length:
             return value
         
-        # 마지막 완전한 라인까지만 포함
         lines = value.split('\n')
         result = ""
-        for line in lines:
-            if len(result + line + '\n') > max_length - 50:  # 여유 공간 확보
-                result += f"\n... 그리고 {len(lines) - len(result.split('\n')) + 1}명 더"
+        
+        for i, line in enumerate(lines):
+            test_result = result + line + '\n'
+            if len(test_result) > max_length - 50:
+                remaining = len(lines) - i
+                result += f"\n... 그리고 {remaining}명 더"
                 break
-            result += line + '\n'
+            result = test_result
         
         return result.rstrip()
     
