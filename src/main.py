@@ -147,14 +147,10 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
 @bot.tree.command(name="티어조정신청")
 async def apply(interaction: discord.Interaction, member: discord.Member = None):
 
-    from tier_adjust import apply_tier_adjust
+    from tier_adjust.main_tier_adjust import apply_tier_adjust
 
     await apply_tier_adjust(interaction=interaction, member=member)
 
-@bot.tree.command(name="마술사테스트")
-async def apply(interaction: discord.Interaction, member: discord.Member = None):
-
-    return
 
 @bot.command()
 @commands.is_owner()

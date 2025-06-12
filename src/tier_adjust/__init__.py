@@ -1,1 +1,1 @@
-from apply_tier_adjust import *
+from .main_tier_adjust import apply_tier_adjust
