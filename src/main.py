@@ -31,7 +31,7 @@ async def daily_update_total_record():
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()  # 슬래시 명령어 동기화
+    await bot.tree.sync()
 
 
 @bot.tree.command(name="전적")
@@ -142,6 +142,15 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
             view=premium_view,
             ephemeral=True
         )
+
+
+@bot.tree.command()
+async def 티어조정신청(interaction: discord.Interaction, member: discord.Member = None):
+
+    from tier_adjust import apply_tier_adjust
+
+    await apply_tier_adjust(interaction=interaction, member=member)
+
 
 
 @bot.command()
