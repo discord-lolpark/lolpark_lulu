@@ -150,6 +150,16 @@ async def apply(interaction: discord.Interaction, member: discord.Member = None)
     from tier_adjust.main_tier_adjust import apply_tier_adjust
 
     await interaction.response.defer(ephemeral=True)
+
+    # 신고및문의에서 진행한게 아닌 경우, 무시
+    if interaction.channel.id != 1287074399689904190:
+        await interaction.followup.send(
+        content=(
+            f'<#1287074399689904190> 에서 신청해주시길 바랍니다.'
+        ),
+        ephemeral=True
+    ) 
+
     channel_id = await apply_tier_adjust(interaction=interaction, member=member)
     await interaction.followup.send(
         content=(
