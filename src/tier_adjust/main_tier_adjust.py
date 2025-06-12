@@ -76,7 +76,7 @@ async def apply_tier_adjust(interaction: discord.Interaction, member: discord.Me
         mention_list = []
         
         # 자문단 역할 멘션
-        # mention_list.append(advisor_role.mention)
+        mention_list.append(advisor_role.mention)
         
         # 서버장 역할이 있으면 멘션
         if server_owner_role:
