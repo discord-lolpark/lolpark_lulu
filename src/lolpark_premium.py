@@ -368,6 +368,8 @@ def get_most_pick_images(member, start_id, end_id):
             break
 
         champion, games, win, lose, win_rate = champion_result
+        if champion is None:
+            continue
         champion_profile_image = get_champion_profile_image(champion)
 
         result_text_color = 'red' if win_rate >= 60.0 else 'blue' if win_rate <= 40.0 else 'gray'
