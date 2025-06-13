@@ -19,6 +19,8 @@ class TierAdjustVoteView(discord.ui.View):
         if advisor_role not in interaction.user.roles:
             await interaction.response.send_message("자문단만 투표할 수 있습니다.", ephemeral=True)
             return
+        
+        # 모달 표시
         modal = TierInputModal("상승", self.member_name)
         modal.vote_view = self
         await interaction.response.send_modal(modal)
@@ -39,7 +41,7 @@ class TierAdjustVoteView(discord.ui.View):
         # 유지 투표 추가
         self.votes["유지"].add(user_id)
         
-        # view만 업데이트 (개별 메시지 없음)
+        # 즉시 view 업데이트
         await self.update_vote_display(interaction)
     
     @discord.ui.button(label="티어 하락", style=discord.ButtonStyle.danger, emoji="⬇️")
@@ -49,6 +51,8 @@ class TierAdjustVoteView(discord.ui.View):
         if advisor_role not in interaction.user.roles:
             await interaction.response.send_message("자문단만 투표할 수 있습니다.", ephemeral=True)
             return
+        
+        # 모달 표시
         modal = TierInputModal("하락", self.member_name)
         modal.vote_view = self
         await interaction.response.send_modal(modal)
@@ -87,22 +91,32 @@ class TierAdjustVoteView(discord.ui.View):
         return result.rstrip()
     
     async def update_vote_display(self, interaction):
-        async with self._update_lock:  # 동시성 제어
+        """interaction을 통한 실시간 업데이트"""
+        async with self._update_lock:
             embed = self._create_vote_embed()
             
             try:
-                await interaction.response.edit_message(embed=embed, view=self)
+                # 먼저 interaction이 응답되었는지 확인
+                if not interaction.response.is_done():
+                    await interaction.response.edit_message(embed=embed, view=self)
+                else:
+                    await interaction.edit_original_response(embed=embed, view=self)
             except discord.InteractionResponded:
+                # 이미 응답된 경우 원본 응답 수정
                 try:
                     await interaction.edit_original_response(embed=embed, view=self)
                 except discord.HTTPException as e:
                     print(f"메시지 업데이트 실패: {e}")
+                    # fallback으로 직접 메시지 수정 시도
+                    await self.update_vote_display_silent()
             except discord.HTTPException as e:
                 print(f"Discord API 오류: {e}")
+                # fallback으로 직접 메시지 수정 시도
+                await self.update_vote_display_silent()
 
     async def update_vote_display_silent(self):
         """모달에서 호출할 때 사용하는 메서드 (interaction 없이)"""
-        async with self._update_lock:  # 동시성 제어
+        async with self._update_lock:
             embed = self._create_vote_embed()
             
             try:
@@ -142,6 +156,10 @@ class TierAdjustVoteView(discord.ui.View):
             color=discord.Color.blue()
         )
         
+        # 실시간 업데이트 표시
+        embed.set_footer(text="실시간 업데이트 중 • 투표할 때마다 자동 갱신")
+        embed.timestamp = discord.utils.utcnow()
+        
         # 상승 투표 표시
         if self.votes["상승"]:
             up_text = "\n".join([f"• <@{user_id}>: {tier}" for user_id, tier in self.votes["상승"].items()])
@@ -159,6 +177,14 @@ class TierAdjustVoteView(discord.ui.View):
             down_text = "\n".join([f"• <@{user_id}>: {tier}" for user_id, tier in self.votes["하락"].items()])
             down_text = self._truncate_field_value(down_text)
             embed.add_field(name=f"⬇️ 하락 ({len(self.votes['하락'])}표)", value=down_text, inline=False)
+        
+        # 투표가 없는 경우 안내 메시지
+        if total_votes == 0:
+            embed.add_field(
+                name="📝 투표 안내",
+                value="아직 투표가 없습니다. 위 버튼을 눌러 투표해주세요!",
+                inline=False
+            )
         
         return embed
     
@@ -347,7 +373,10 @@ class TierInputModal(discord.ui.Modal):
         self.vote_view.votes[self.vote_type][user_id] = target_tier
         
         # 모달 응답 (간단한 확인만)
-        await interaction.response.send_message("투표 완료!", ephemeral=True)
+        await interaction.response.send_message(
+            f"✅ {self.vote_type} 투표 완료! (목표: {target_tier})", 
+            ephemeral=True
+        )
         
         # view 업데이트 (별도 메서드 사용)
         await self.vote_view.update_vote_display_silent()
