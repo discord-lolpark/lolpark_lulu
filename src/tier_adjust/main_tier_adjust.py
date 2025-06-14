@@ -19,7 +19,7 @@ async def apply_tier_adjust(interaction: discord.Interaction, member: discord.Me
         
         # 역할 찾기
         advisor_role = discord.utils.get(guild.roles, name="티어 조정 자문단")
-        server_owner_role = discord.utils.get(guild.roles, name="서버장")
+        server_owner_role = discord.utils.get(guild.roles, name="관리자")
         
         # 역할이 없는 경우 처리
         if advisor_role is None:
