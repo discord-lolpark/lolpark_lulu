@@ -1,12 +1,14 @@
 import discord
-from land_database import execute_select_query, execute_post_query
-import land_functions
+import lolpark_land.land_functions
 
 async def register_user(interaction: discord.Interaction):
 
     """
     /등록 사용 시 적용. 등록되어 있으면 false 반환, 성공 시 true 반환
     """
+    
+    from lolpark_land.land_database import execute_select_query, execute_post_query
+
     await interaction.response.defer()
 
     user = interaction.user
