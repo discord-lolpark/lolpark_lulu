@@ -1,4 +1,4 @@
-from land_config import land_database_path
+from lolpark_land.land_config import land_database_path
 import sqlite3
 
 def execute_select_query(query: str, parameter: any = None):
