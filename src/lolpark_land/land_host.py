@@ -24,7 +24,7 @@ async def register_user(interaction: discord.Interaction):
         return False
     
     # 3. 등록되어 있지 않다면 외부 함수로 코인 정보 가져오기
-    user_lolpark_coin = land_functions.get_lolpark_coin(user)
+    user_lolpark_coin = lolpark_land.land_functions.get_lolpark_coin(user)
     
     # 4. 사용자 등록 쿼리 작성 및 실행
     insert_query = "INSERT INTO users (user_id, lolpark_coin) VALUES (?, ?)"
