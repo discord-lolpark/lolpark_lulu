@@ -210,6 +210,26 @@ async def start_tier_vote(interaction: discord.Interaction, target_channel: disc
     await interaction.response.send_message(embed=embed, view=vote_view)
 
 
+@bot.tree.command(name="랜드등록")
+async def register_land(interaction: discord.Interaction):
+    from lolpark_land import land_host, land_functions
+
+    is_register = await land_host.register_user(interaction)
+
+    if is_register:
+        embed = discord.Embed(
+            title="🎉 회원가입 완료!",
+            description=f"**{get_nickname(interaction.user)}**님 환영합니다!\n\n💰 **시작 코인**: {land_functions.get_lolpark_coin(interaction.user):,} LC\n📊 (내전 승리 × 300 + 내전 패배 × 100)",
+            color=0xFFD700
+        )
+        
+        embed.set_thumbnail(url=interaction.user.display_avatar.url)
+        embed.timestamp = discord.utils.utcnow()
+        
+        await interaction.channel.send(embed=embed)
+        
+
+
 @bot.command()
 @commands.is_owner()
 async def 기록삭제(ctx, match_id: int):
