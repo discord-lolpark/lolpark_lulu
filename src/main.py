@@ -228,7 +228,32 @@ async def register_land(interaction: discord.Interaction):
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
         embed.timestamp = discord.utils.utcnow()
         
-        await interaction.channel.send(embed=embed)
+        await interaction.followup.send(embed=embed)
+
+
+@bot.tree.command(name='뽑기')
+async def gacha_command(interaction: discord.Interaction):
+    """
+    뽑기 명령어 - 상자 선택 버튼들을 표시
+    """
+    user = interaction.user
+    
+    # 기본 버튼들
+    from lolpark_land.gacha import GachaButtonView
+    view = GachaButtonView(user_id=str(user.id))
+    
+    # 프리미엄 유저 확인
+    has_premium = discord.utils.get(user.roles, name="LOLPARK PREMIUM")
+    if has_premium:
+        view.add_premium_button()
+    
+    embed = discord.Embed(
+        title="🎁 롤파크 스킨 뽑기",
+        description="원하는 상자를 선택해주세요!",
+        color=0x00ff00
+    )
+    
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
 @bot.command()

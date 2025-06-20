@@ -45,5 +45,6 @@ jobs:
             -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} \
             -v /home/ec2-user/database/matches.db:/database/matches.db \
             -v /home/ec2-user/database/lolpark_land.db:/database/lolpark_land.db \
+            -v /home/ec2-user/lolpark_assets/:/lolpark_assets/ \
             magician-image
         EOF

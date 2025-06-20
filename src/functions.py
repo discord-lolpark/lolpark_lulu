@@ -295,15 +295,15 @@ def get_champions_per_line(line_name):
             'malzahar', 'mel', 'veigar', 'velkoz', 'vex', 'vladimir', 'viktor',
             'sylas', 'swain', 'syndra', 'ahri', 'akali', 'akshan', 'azir',
             'aurelionsol', 'annie', 'anivia', 'yasuo', 'ekko', 'orianna', 'yone',
-            'xerath', 'jayce', 'zoe', 'cassiopeia', 'kassadin', 'katarina',
+            'xerath', 'jayce', 'zed', 'zoe', 'cassiopeia', 'kassadin', 'katarina',
             'corki', 'quinn', 'qiyana', 'taliyah', 'talon', 'twistedfate', 'pantheon',
             'fizz', 'hwei'
         ],
         'bot': [
-            'nilah', 'draven', 'lucian', 'missfortune', 'mel', 'varus', 'vayne', 
+            'nilah', 'draven', 'lucian', 'missfortune', 'varus', 'vayne', 
             'samira', 'sivir', 'smolder', 'tristana', 'twitch', 'jhin', 'jinx', 
             'kaisa', 'kalista', 'kogmaw', 'aphelios', 'ashe', 'ezreal', 'xayah', 
-            'zeri', 'ziggs', 'hwei'
+            'zeri', 'ziggs'
         ],
         'support': [
             'nami', 'nautilus', 'neeko', 'bard', 'blitzcrank', 'brand', 'braum',
