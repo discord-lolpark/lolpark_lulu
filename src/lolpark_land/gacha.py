@@ -274,6 +274,12 @@ class ConfirmGachaView(discord.ui.View):
                 description=f"**{result['skin_name_kr']}**\n({result['champion_name_kr']})",
                 color=embed_color
             )
+
+            from functions import get_nickname
+            embed.set_author(
+                name=f"{get_nickname(interaction.user)}",
+                icon_url=interaction.user.display_avatar.url
+            )
             
             # 스킨 이미지 추가
             file_name = result.get('file_name')
