@@ -221,7 +221,7 @@ async def register_land(interaction: discord.Interaction):
 
     has_premium = discord.utils.get(interaction.user.roles, name="LOLPARK PREMIUM")
     premium_message = f"X 5 [프리미엄 보너스]" if has_premium else f""
-    coin_info = f"{get_now_lolpark_coin(interaction.user)} LC\n📊 (내전 승리 × 300 + 내전 패배 × 100) {premium_message}"
+    coin_info = f"{get_now_lolpark_coin(interaction.user.id)} LC\n📊 (내전 승리 × 300 + 내전 패배 × 100) {premium_message}"
 
     if is_register:
         embed = discord.Embed(
