@@ -213,15 +213,20 @@ async def start_tier_vote(interaction: discord.Interaction, target_channel: disc
 @bot.tree.command(name="랜드등록")
 async def register_land(interaction: discord.Interaction):
     from lolpark_land import land_host, land_functions
+    from lolpark_land.land_database import get_now_lolpark_coin
 
     await interaction.response.defer()
 
     is_register = await land_host.register_user(interaction)
 
+    has_premium = discord.utils.get(interaction.user.roles, name="LOLPARK PREMIUM")
+    premium_message = f"X 5 [프리미엄 보너스]" if has_premium else f""
+    coin_info = f"{get_now_lolpark_coin(interaction.user)} LC\n📊 (내전 승리 × 300 + 내전 패배 × 100) {premium_message}"
+
     if is_register:
         embed = discord.Embed(
             title="🎉 회원가입 완료!",
-            description=f"**{get_nickname(interaction.user)}**님 환영합니다!\n\n💰 **시작 코인**: {land_functions.get_lolpark_coin(interaction.user):,} LC\n📊 (내전 승리 × 300 + 내전 패배 × 100)",
+            description=f"**{get_nickname(interaction.user)}**님 환영합니다!\n\n💰 **시작 코인**: {coin_info}",
             color=0xFFD700
         )
         
