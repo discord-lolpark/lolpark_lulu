@@ -9,8 +9,6 @@ async def register_user(interaction: discord.Interaction):
     
     from lolpark_land.land_database import execute_select_query, execute_post_query
 
-    await interaction.response.defer()
-
     user = interaction.user
     user_id = user.id
 

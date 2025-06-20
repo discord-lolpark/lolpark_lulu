@@ -214,6 +214,8 @@ async def start_tier_vote(interaction: discord.Interaction, target_channel: disc
 async def register_land(interaction: discord.Interaction):
     from lolpark_land import land_host, land_functions
 
+    await interaction.response.defer()
+
     is_register = await land_host.register_user(interaction)
 
     if is_register:
@@ -227,7 +229,6 @@ async def register_land(interaction: discord.Interaction):
         embed.timestamp = discord.utils.utcnow()
         
         await interaction.channel.send(embed=embed)
-        
 
 
 @bot.command()
