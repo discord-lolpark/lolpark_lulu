@@ -305,19 +305,12 @@ class ConfirmGachaView(discord.ui.View):
                 embed.add_field(name="💎", value="**신화급 스킨!**", inline=True)
             elif rarity == "Legendary":
                 embed.add_field(name="🔥", value="**전설급 스킨!**", inline=True)
-            
-            # 기존 메시지 삭제
-            try:
-                await interaction.delete_original_response()
-            except:
-                # 삭제 실패 시 기존 메시지는 그대로 두고 진행
-                pass
-            
-            # 새로운 메시지로 결과 전송
+    
+            # 새로운 메시지로 결과 전송 (공개)
             if file:
-                await interaction.channel.send(embed=embed, file=file)
+                await interaction.followup.send(embed=embed, file=file, ephemeral=False)
             else:
-                await interaction.channel.send(embed=embed)
+                await interaction.followup.send(embed=embed, ephemeral=False)
                 
         else:
             # 뽑기 실패 시에는 기존 메시지 수정
