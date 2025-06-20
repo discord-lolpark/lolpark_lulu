@@ -278,6 +278,8 @@ class ConfirmGachaView(discord.ui.View):
             # 스킨 이미지 추가
             file_name = result.get('file_name')
             champion_name = file_name.split('_')[0]
+            file = None
+            
             if file_name:
                 image_path = get_skin_image_url(champion_name, file_name)
                 if image_path:
@@ -289,10 +291,6 @@ class ConfirmGachaView(discord.ui.View):
                         # 파일이 없는 경우 이미지 없이 진행
                         print(f"이미지 파일을 찾을 수 없습니다: {image_path}")
                         file = None
-                else:
-                    file = None
-            else:
-                file = None
             
             embed.add_field(name="등급", value=rarity, inline=True)
             embed.add_field(name="사용한 LC", value=f"{self.price:,} LC", inline=True)
@@ -307,19 +305,29 @@ class ConfirmGachaView(discord.ui.View):
                 embed.add_field(name="💎", value="**신화급 스킨!**", inline=True)
             elif rarity == "Legendary":
                 embed.add_field(name="🔥", value="**전설급 스킨!**", inline=True)
+            
+            # 기존 메시지 삭제
+            try:
+                await interaction.delete_original_response()
+            except:
+                # 삭제 실패 시 기존 메시지는 그대로 두고 진행
+                pass
+            
+            # 새로운 메시지로 결과 전송
+            if file:
+                await interaction.channel.send(embed=embed, file=file)
+            else:
+                await interaction.channel.send(embed=embed)
                 
         else:
+            # 뽑기 실패 시에는 기존 메시지 수정
             embed = discord.Embed(
                 title="❌ 뽑기 실패",
                 description="뽑기에 실패했습니다. 코인은 차감되지 않았습니다.\n다시 시도해주세요.",
                 color=0xff0000
             )
             embed.add_field(name="현재 LC", value=f"{current_coin:,} LC", inline=True)
-        
-        # 메시지 전송 시 파일 첨부
-        if result and 'file' in locals() and file:
-            await interaction.followup.edit_message(interaction.message.id, embed=embed, view=None, attachments=[file])
-        else:
+            
             await interaction.followup.edit_message(interaction.message.id, embed=embed, view=None)
 
 class LineButtonView(discord.ui.View):
