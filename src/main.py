@@ -264,6 +264,7 @@ async def gacha_command(interaction: discord.Interaction):
 @bot.tree.command(name="대표스킨", description="챔피언별 대표 스킨을 설정하거나 확인합니다")
 async def representative_skin_command(interaction: discord.Interaction):
     from lolpark_land.representative_skin import show_representative_skin_menu
+    await interaction.response.defer(ephemeral=True)
     await show_representative_skin_menu(interaction)
 
 

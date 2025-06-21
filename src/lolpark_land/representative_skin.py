@@ -95,7 +95,7 @@ class ChampionInputModal(discord.ui.Modal):
 def get_user_champion_skins(user_id: str, champion_name: str):
     """
     사용자가 보유한 특정 챔피언의 모든 스킨을 조회하는 함수
-    기본 스킨(0번)은 항상 포함
+    기본 스킨(0번)은 항상 포함 - 하드코딩으로 생성
     """
     # 사용자가 보유한 스킨들 조회
     query = """
@@ -117,32 +117,24 @@ def get_user_champion_skins(user_id: str, champion_name: str):
                 "file_name": result[3]
             })
     
-    # 기본 스킨(0번) 추가 - 항상 보유한다고 가정
-    # 기본 스킨 정보 조회
-    basic_skin_query = """
-    SELECT skin_id, skin_name_kr, skin_name_en, file_name
-    FROM skins
-    WHERE champion_name_kr = ? AND (skin_id LIKE '%_0' OR skin_id LIKE '%0')
-    ORDER BY CAST(skin_id AS INTEGER)
-    LIMIT 1
-    """
-    basic_skin_result = execute_select_query(basic_skin_query, (champion_name,))
+    # 기본 스킨(0번) 생성 - 데이터베이스에 없으므로 하드코딩으로 생성
+    from functions import get_full_champion_eng_name
+    champion_eng = get_full_champion_eng_name(champion_name)
     
-    if basic_skin_result:
+    if champion_eng:
+        # 기본 스킨 정보 생성
         basic_skin = {
-            "skin_id": basic_skin_result[0][0],
-            "skin_name_kr": basic_skin_result[0][1],
-            "skin_name_en": basic_skin_result[0][2],
-            "file_name": basic_skin_result[0][3]
+            "skin_id": f"{champion_eng}_0",  # 예: "Jhin_0"
+            "skin_name_kr": f"{champion_name}",  # 예: "진"
+            "skin_name_en": f"{champion_eng}",  # 예: "Jhin"
+            "file_name": f"{champion_eng}_0"  # 예: "Jhin_0"
         }
         
-        # 기본 스킨이 이미 목록에 있는지 확인 (중복 방지)
-        basic_skin_exists = any(skin["skin_id"] == basic_skin["skin_id"] for skin in champion_skins)
-        
-        if not basic_skin_exists:
-            # 기본 스킨을 맨 앞에 추가
-            champion_skins.insert(0, basic_skin)
+        # 기본 스킨을 맨 앞에 추가 (항상 기본 스킨이 첫 번째)
+        champion_skins.insert(0, basic_skin)
+        print(f"기본 스킨 생성됨: {basic_skin}")
     
+    print(f"최종 스킨 목록: {champion_skins}")
     return champion_skins
 
 def get_current_representative_skin(user_id: str, champion_name: str):
@@ -170,8 +162,10 @@ def get_current_representative_skin(user_id: str, champion_name: str):
 def sort_skins_by_priority(owned_skins: list, current_representative):
     """
     현재 대표 스킨을 맨 앞으로 정렬하는 함수
+    대표 스킨 > 기본 스킨 > 나머지 스킨 순서
     """
     if not current_representative:
+        # 대표 스킨이 없으면 기본 스킨이 맨 앞 (이미 insert(0)으로 들어가 있음)
         return owned_skins
     
     # 현재 대표 스킨을 찾아서 맨 앞으로 이동
@@ -185,8 +179,10 @@ def sort_skins_by_priority(owned_skins: list, current_representative):
             other_skins.append(skin)
     
     if representative_skin:
+        # 대표 스킨이 있으면: 대표 스킨 + 나머지 스킨들
         return [representative_skin] + other_skins
     else:
+        # 대표 스킨이 목록에 없으면 (예: 대표 스킨을 뽑기로 잃은 경우) 원래 순서 유지
         return owned_skins
 
 def create_skin_preview_embed(user: discord.Member, champion_name: str, skins: list, current_index: int, current_representative):
@@ -197,14 +193,30 @@ def create_skin_preview_embed(user: discord.Member, champion_name: str, skins: l
     is_current_representative = (current_representative and 
                                current_skin["skin_id"] == current_representative["skin_id"])
     
+    # 기본 스킨인지 확인
+    is_basic_skin = current_skin["skin_id"].endswith("_0")
+    
+    # 대표 스킨 표시 로직
+    if is_current_representative:
+        # 현재 설정된 대표 스킨
+        title_suffix = " (대표 스킨)"
+        title_prefix = "⭐ "
+    elif is_basic_skin and not current_representative:
+        # 대표 스킨이 없으면 기본 스킨이 대표
+        title_suffix = " (대표 스킨)"
+        title_prefix = "🔵 "
+    else:
+        # 일반 스킨
+        title_suffix = ""
+        title_prefix = ""
+    
     # 제목 설정
-    title_prefix = "⭐ " if is_current_representative else ""
-    title = f"{title_prefix}{champion_name} - {current_skin['skin_name_kr']}"
+    title = f"{title_prefix}{champion_name} - {current_skin['skin_name_kr']}{title_suffix}"
     
     embed = discord.Embed(
         title=title,
         description=f"**{current_skin['skin_name_en']}**",
-        color=0xFFD700 if is_current_representative else 0x00BFFF
+        color=0xFFD700 if (is_current_representative or (is_basic_skin and not current_representative)) else 0x00BFFF
     )
     
     # 챔피언 영문명 가져오기
@@ -223,10 +235,17 @@ def create_skin_preview_embed(user: discord.Member, champion_name: str, skins: l
             # embed에서 첨부된 파일을 참조
             embed.set_image(url=f"attachment://{current_skin['file_name']}.jpg")
     
+    # 상태 정보 추가
     if is_current_representative:
         embed.add_field(
             name="💎 상태",
             value="현재 설정된 대표 스킨입니다",
+            inline=False
+        )
+    elif is_basic_skin and not current_representative:
+        embed.add_field(
+            name="🔵 상태", 
+            value="대표 스킨이 설정되지 않아 기본 스킨이 대표로 사용됩니다",
             inline=False
         )
     
