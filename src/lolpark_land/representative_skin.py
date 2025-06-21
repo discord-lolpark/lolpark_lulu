@@ -214,7 +214,6 @@ def create_skin_preview_embed(user: discord.Member, champion_name: str, skins: l
     # 로컬 스킨 이미지 파일 경로
     image_file = None
     if champion_eng and current_skin['file_name']:
-        
         image_path = get_skin_image_url(champion_eng, current_skin['file_name'])
         
         # 파일이 존재하면 Discord File 객체 생성
