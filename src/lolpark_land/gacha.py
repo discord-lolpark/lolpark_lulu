@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from lolpark_land.land_functions import draw_random_skin
+from lolpark_land.land_functions import draw_random_skin, get_skin_image_url
 
 # ===== 상자 정보 설정 =====
 BOX_INFO = {
@@ -62,19 +62,6 @@ RARITY_COLORS = {
     "Ultimate": 0xffcc00,    # 금색
     "Exalted": 0xff0000      # 빨간색
 }
-
-def get_skin_image_url(champion_name: str, file_name: str) -> str:
-    """
-    fileName을 기반으로 로컬 스킨 이미지 파일 경로를 생성
-    """
-    if not file_name or not champion_name:
-        return None
-    
-    # 로컬 assets 폴더의 스킨 이미지 경로 (챔피언별 폴더)
-    import os
-    champion_path = f"lolpark_assets/splash/{champion_name}/{file_name}.jpg"
-    image_path = f"C:/Users/Desktop/lolpark_githubs/{champion_path}" if os.path.exists(f"C:/Users/Desktop/lolpark_githubs/{champion_path}") else f"/{champion_path}"
-    return image_path
 
 class GachaButtonView(discord.ui.View):
     def __init__(self, user_id):

@@ -153,3 +153,20 @@ def draw_random_skin(user_id, box_type=None, line_type=None, is_most_pick=False,
     else:
         print(f"[ERROR] 스킨 지급 실패")
         return None
+    
+
+def get_skin_image_url(champion_name: str, file_name: str) -> str:
+    """
+    fileName을 기반으로 로컬 스킨 이미지 파일 경로를 생성
+    """
+    if not file_name or not champion_name:
+        return None
+    
+    champion_name = champion_name.capitalize()
+    file_name = file_name.capitalize()
+    
+    # 로컬 assets 폴더의 스킨 이미지 경로 (챔피언별 폴더)
+    import os
+    champion_path = f"lolpark_assets/splash/{champion_name}/{file_name}.jpg"
+    image_path = f"C:/Users/Desktop/lolpark_githubs/{champion_path}" if os.path.exists(f"C:/Users/Desktop/lolpark_githubs/{champion_path}") else f"/{champion_path}"
+    return image_path
