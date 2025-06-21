@@ -1,6 +1,6 @@
 import discord
 import math
-from lolpark_land.land_functions import execute_select_query, execute_post_query
+from lolpark_land.land_functions import execute_select_query, execute_post_query, get_skin_image_url
 
 async def show_representative_skin_menu(interaction: discord.Interaction):
     """
@@ -68,10 +68,11 @@ class ChampionInputModal(discord.ui.Modal):
         # 사용자가 해당 챔피언의 스킨을 보유하고 있는지 확인
         owned_skins = get_user_champion_skins(user_id, champion_name)
         
+        # 기본 스킨은 항상 있으므로 owned_skins가 비어있을 수 없음
         if not owned_skins:
             embed = discord.Embed(
-                title="❌ 스킨 없음",
-                description=f"**{champion_name}**의 스킨을 보유하고 있지 않습니다.\n뽑기를 통해 스킨을 획득해보세요!",
+                title="❌ 챔피언 정보 없음",
+                description=f"**{champion_name}** 챔피언의 정보를 찾을 수 없습니다.",
                 color=0xFF0000
             )
             await interaction.response.edit_message(embed=embed, view=None)
@@ -84,13 +85,19 @@ class ChampionInputModal(discord.ui.Modal):
         sorted_skins = sort_skins_by_priority(owned_skins, current_representative)
         
         # 첫 번째 스킨으로 미리보기 시작
-        embed, view = create_skin_preview_embed(self.user, champion_name, sorted_skins, 0, current_representative)
-        await interaction.response.edit_message(embed=embed, view=view)
+        embed, view, image_file = create_skin_preview_embed(self.user, champion_name, sorted_skins, 0, current_representative)
+        
+        if image_file:
+            await interaction.response.edit_message(embed=embed, view=view, attachments=[image_file])
+        else:
+            await interaction.response.edit_message(embed=embed, view=view)
 
 def get_user_champion_skins(user_id: str, champion_name: str):
     """
     사용자가 보유한 특정 챔피언의 모든 스킨을 조회하는 함수
+    기본 스킨(0번)은 항상 포함
     """
+    # 사용자가 보유한 스킨들 조회
     query = """
     SELECT s.skin_id, s.skin_name_kr, s.skin_name_en, s.file_name
     FROM user_skins us
@@ -100,17 +107,41 @@ def get_user_champion_skins(user_id: str, champion_name: str):
     """
     results = execute_select_query(query, (user_id, champion_name))
     
-    if not results:
-        return []
-    
     champion_skins = []
-    for result in results:
-        champion_skins.append({
-            "skin_id": result[0],
-            "skin_name_kr": result[1],
-            "skin_name_en": result[2],
-            "file_name": result[3]
-        })
+    if results:
+        for result in results:
+            champion_skins.append({
+                "skin_id": result[0],
+                "skin_name_kr": result[1],
+                "skin_name_en": result[2],
+                "file_name": result[3]
+            })
+    
+    # 기본 스킨(0번) 추가 - 항상 보유한다고 가정
+    # 기본 스킨 정보 조회
+    basic_skin_query = """
+    SELECT skin_id, skin_name_kr, skin_name_en, file_name
+    FROM skins
+    WHERE champion_name_kr = ? AND (skin_id LIKE '%_0' OR skin_id LIKE '%0')
+    ORDER BY CAST(skin_id AS INTEGER)
+    LIMIT 1
+    """
+    basic_skin_result = execute_select_query(basic_skin_query, (champion_name,))
+    
+    if basic_skin_result:
+        basic_skin = {
+            "skin_id": basic_skin_result[0][0],
+            "skin_name_kr": basic_skin_result[0][1],
+            "skin_name_en": basic_skin_result[0][2],
+            "file_name": basic_skin_result[0][3]
+        }
+        
+        # 기본 스킨이 이미 목록에 있는지 확인 (중복 방지)
+        basic_skin_exists = any(skin["skin_id"] == basic_skin["skin_id"] for skin in champion_skins)
+        
+        if not basic_skin_exists:
+            # 기본 스킨을 맨 앞에 추가
+            champion_skins.insert(0, basic_skin)
     
     return champion_skins
 
@@ -180,24 +211,18 @@ def create_skin_preview_embed(user: discord.Member, champion_name: str, skins: l
     from functions import get_full_champion_eng_name
     champion_eng = get_full_champion_eng_name(champion_name)
     
-    # 스킨 이미지 추가
-    def get_skin_image_url(champion_name: str, file_name: str) -> str:
-        """
-        fileName을 기반으로 로컬 스킨 이미지 파일 경로를 생성
-        """
-        if not file_name or not champion_name:
-            return None
+    # 로컬 스킨 이미지 파일 경로
+    image_file = None
+    if champion_eng and current_skin['file_name']:
         
-        # 로컬 assets 폴더의 스킨 이미지 경로 (챔피언별 폴더)
+        image_path = get_skin_image_url(champion_eng, current_skin['file_name'])
+        
+        # 파일이 존재하면 Discord File 객체 생성
         import os
-        champion_path = f"lolpark_assets/splash/{champion_name}/{file_name}.jpg"
-        image_path = f"C:/Users/Desktop/lolpark_githubs/{champion_path}" if os.path.exists(f"C:/Users/Desktop/lolpark_githubs/{champion_path}") else f"/{champion_path}"
-        return image_path
-    
-    if champion_eng:
-        image_url = get_skin_image_url(champion_eng, current_skin['file_name'])
-        if image_url:
-            embed.set_image(url=f"file://{image_url}")
+        if image_path and os.path.exists(image_path):
+            image_file = discord.File(image_path, filename=f"{current_skin['file_name']}.jpg")
+            # embed에서 첨부된 파일을 참조
+            embed.set_image(url=f"attachment://{current_skin['file_name']}.jpg")
     
     if is_current_representative:
         embed.add_field(
@@ -212,7 +237,7 @@ def create_skin_preview_embed(user: discord.Member, champion_name: str, skins: l
     # View 생성
     view = SkinPreviewView(user, champion_name, skins, current_index, current_representative)
     
-    return embed, view
+    return embed, view, image_file
 
 class SkinPreviewView(discord.ui.View):
     def __init__(self, user: discord.Member, champion_name: str, skins: list, current_index: int, current_representative):
@@ -309,7 +334,7 @@ class SkinPreviewView(discord.ui.View):
         self.current_index = (self.current_index + 1) % len(self.skins)
         self.update_buttons()
         
-        embed, _ = create_skin_preview_embed(
+        embed, _, image_file = create_skin_preview_embed(
             self.user, 
             self.champion_name, 
             self.skins, 
@@ -317,7 +342,10 @@ class SkinPreviewView(discord.ui.View):
             self.current_representative
         )
         
-        await interaction.response.edit_message(embed=embed, view=self)
+        if image_file:
+            await interaction.response.edit_message(embed=embed, view=self, attachments=[image_file])
+        else:
+            await interaction.response.edit_message(embed=embed, view=self)
     
     async def set_default_skin(self, interaction: discord.Interaction):
         """
@@ -325,13 +353,13 @@ class SkinPreviewView(discord.ui.View):
         """
         user_id = str(self.user.id)
         
-        # 대표 스킨 제거
+        # 대표 스킨 제거 (기본 스킨으로 돌아감)
         success = remove_representative_skin(user_id, self.champion_name)
         
         if success:
             embed = discord.Embed(
                 title="✅ 기본 스킨으로 설정 완료",
-                description=f"**{self.champion_name}**의 대표 스킨이 기본 스킨으로 설정되었습니다.",
+                description=f"**{self.champion_name}**의 대표 스킨이 기본 스킨으로 설정되었습니다.\n(모든 유저가 기본적으로 보유한 스킨입니다)",
                 color=0x00FF00
             )
         else:
