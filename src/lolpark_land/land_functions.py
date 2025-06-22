@@ -94,12 +94,9 @@ def draw_random_skin(user_id, box_type=None, line_type=None, is_most_pick=False,
                 if index >= 5:
                     break
                 most_pick_champions.append(info[0])
-                
-            print(most_pick_champions_info)
-            print(most_pick_champions)
 
             if most_pick_champions:
-                placeholders = ",".join(["?" for _ in most_pick_champions])
+                placeholders = ",".join([f"'{_}'" for _ in most_pick_champions])
                 query += f" AND (champion_name_kr IN ({placeholders}) OR champion_name_en IN ({placeholders}))"
                 params.extend(most_pick_champions)
                 params.extend(most_pick_champions)  # 한국어, 영어 둘 다
