@@ -7,31 +7,31 @@ BOX_INFO = {
     "normal": {
         "title": "📦 일반 상자",
         "description": "**모든 스킨**에서 무작위로 뽑을 수 있는 기본 상자입니다.\n모든 등급의 스킨이 동일한 확률로 나옵니다.",
-        "price": 5000,
+        "price": 100,
         "color": 0x808080
     },
     "premium": {
         "title": "💎 고급 상자",
         "description": "**레어 등급 이상** 스킨만 나오는 프리미엄 상자입니다.\n높은 등급의 스킨을 획득할 확률이 높습니다!",
-        "price": 10000,
+        "price": 300,
         "color": 0x00ff00
     },
     "line": {
         "title": "🎯 라인별 상자",
         "description": "**특정 라인의 챔피언** 스킨만 나오는 상자입니다.\n원하는 라인을 선택해주세요!",
-        "price": 7000,
+        "price": 1000,
         "color": 0x5865f2
     },
     "theme": {
         "title": "✨ 테마 상자",
         "description": "**특정 테마의 스킨**만 나오는 상자입니다.\n별 수호자, 프로젝트, K/DA 등 다양한 테마를 선택할 수 있습니다.",
-        "price": 8000,
+        "price": 3000,
         "color": 0xed4245
     },
     "most_pick": {
         "title": "🔥 모스트 픽 상자",
-        "description": "**현재 가장 인기있는 5개 챔피언**의 스킨만 나오는 프리미엄 전용 상자입니다!\n인기 챔피언들의 희귀한 스킨을 획득하세요.",
-        "price": 15000,
+        "description": "**본인 모스트 픽 5개 챔피언**의 스킨만 나오는 롤파크 프리미엄 전용 상자입니다!",
+        "price": 2000,
         "color": 0xffa500
     }
 }
@@ -288,6 +288,72 @@ class LineButtonView(discord.ui.View):
             view.add_premium_button()
             
         await interaction.response.edit_message(embed=embed, view=view)
+
+class RepresentativeSkinChoiceView(discord.ui.View):
+    def __init__(self, user_id, champion_name_kr, champion_name_en, skin_id, skin_name):
+        super().__init__(timeout=120.0)  # 2분 타임아웃
+        self.user_id = user_id
+        self.champion_name_kr = champion_name_kr
+        self.champion_name_en = champion_name_en
+        self.skin_id = skin_id
+        self.skin_name = skin_name
+    
+    @discord.ui.button(label='대표 스킨으로 설정', style=discord.ButtonStyle.green, emoji='👑')
+    async def set_representative(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # 뽑은 사람만 버튼 사용 가능
+        if str(interaction.user.id) != self.user_id:
+            await interaction.response.send_message("❌ 본인만 설정할 수 있습니다.", ephemeral=True)
+            return
+        
+        from lolpark_land.land_database import set_representative_skin
+        
+        # 대표 스킨 설정
+        success = set_representative_skin(self.user_id, self.champion_name_kr, self.champion_name_en, self.skin_id)
+        
+        if success:
+            embed = discord.Embed(
+                title="✅ 대표 스킨 설정 완료",
+                description=f"**{self.skin_name}**이(가) **{self.champion_name_kr}**의 대표 스킨으로 설정되었습니다!",
+                color=0x00FF00
+            )
+        else:
+            embed = discord.Embed(
+                title="❌ 설정 실패",
+                description="대표 스킨 설정에 실패했습니다. 다시 시도해주세요.",
+                color=0xFF0000
+            )
+        
+        await interaction.response.edit_message(embed=embed, view=None)
+    
+    @discord.ui.button(label='나중에 설정', style=discord.ButtonStyle.gray, emoji='⏰')
+    async def skip_setting(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # 뽑은 사람만 버튼 사용 가능
+        if str(interaction.user.id) != self.user_id:
+            await interaction.response.send_message("❌ 본인만 선택할 수 있습니다.", ephemeral=True)
+            return
+        
+        embed = discord.Embed(
+            title="⏰ 대표 스킨 설정 건너뜀",
+            description=f"**{self.skin_name}**의 대표 스킨 설정을 건너뛰었습니다.\n나중에 `/대표스킨` 명령어로 설정할 수 있습니다.",
+            color=0x808080
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=None)
+    
+    async def on_timeout(self):
+        """
+        타임아웃 시 메시지 수정
+        """
+        embed = discord.Embed(
+            title="⏰ 시간 초과",
+            description="대표 스킨 설정 시간이 초과되었습니다.\n`/대표스킨` 명령어로 나중에 설정할 수 있습니다.",
+            color=0x808080
+        )
+        # 메시지 수정 시도 (이미 수정되었을 수도 있음)
+        try:
+            await self.message.edit(embed=embed, view=None)
+        except:
+            pass
 
 class RepresentativeSkinChoiceView(discord.ui.View):
     def __init__(self, user_id, champion_name_kr, champion_name_en, skin_id, skin_name):
