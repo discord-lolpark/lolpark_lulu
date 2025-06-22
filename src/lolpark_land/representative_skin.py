@@ -304,15 +304,6 @@ class SkinPreviewView(discord.ui.View):
         )
         next_button.callback = self.next_skin
         self.add_item(next_button)
-        
-        # 기본 스킨으로 설정 버튼
-        default_button = discord.ui.Button(
-            label="기본 스킨으로 설정",
-            style=discord.ButtonStyle.red,
-            emoji="🔄"
-        )
-        default_button.callback = self.set_default_skin
-        self.add_item(default_button)
     
     async def set_this_skin(self, interaction: discord.Interaction):
         """
