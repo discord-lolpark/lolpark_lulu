@@ -13,7 +13,7 @@ async def show_representative_skin_menu(interaction: discord.Interaction):
     )
     
     view = RepresentativeSkinMainView(interaction.user)
-    await interaction.response.send_message(embed=embed, view=view)
+    await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
 class RepresentativeSkinMainView(discord.ui.View):
     def __init__(self, user: discord.Member):
