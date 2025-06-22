@@ -96,8 +96,9 @@ def draw_random_skin(user_id, box_type=None, line_type=None, is_most_pick=False,
                 most_pick_champions.append(info[0])
 
             if most_pick_champions:
-                placeholders = ",".join([f"'{_}'" for _ in most_pick_champions])
-                query += f" AND (champion_name_kr IN ({placeholders}) OR champion_name_en IN ({placeholders}))"
+                kr_conditions = " OR ".join([f"champion_name_kr = ?" for _ in most_pick_champions])
+                en_conditions = " OR ".join([f"champion_name_en = ?" for _ in most_pick_champions])
+                query += f" AND (({kr_conditions}) OR ({en_conditions}))"
                 params.extend(most_pick_champions)
                 params.extend(most_pick_champions)  # 한국어, 영어 둘 다
         except ImportError as e:

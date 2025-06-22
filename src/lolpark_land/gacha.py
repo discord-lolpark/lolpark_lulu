@@ -350,7 +350,7 @@ class RepresentativeSkinChoiceView(discord.ui.View):
             await interaction.response.send_message("❌ 본인만 설정할 수 있습니다.", ephemeral=True)
             return
         
-        from lolpark_land.land_database import set_representative_skin
+        from lolpark_land.representative_skin import set_representative_skin
         
         # 대표 스킨 설정
         success = set_representative_skin(self.user_id, self.champion_name_kr, self.champion_name_en, self.skin_id)
