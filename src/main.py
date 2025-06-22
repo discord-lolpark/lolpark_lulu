@@ -268,6 +268,13 @@ async def representative_skin_command(interaction: discord.Interaction):
     await show_representative_skin_menu(interaction)
 
 
+@bot.tree.command(name="보유스킨", description="보유한 스킨을 확인합니다")
+async def owned_skins_command(interaction: discord.Interaction, 챔피언이름: str = None):
+    from lolpark_land.owned_skin import show_owned_skins
+    await interaction.response.defer(ephemeral=True)
+    await show_owned_skins(interaction, 챔피언이름)
+
+
 
 @bot.command()
 @commands.is_owner()
