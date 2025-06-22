@@ -13,7 +13,7 @@ async def show_representative_skin_menu(interaction: discord.Interaction):
     )
     
     view = RepresentativeSkinMainView(interaction.user)
-    await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+    await interaction.edit_original_response(embed=embed, view=view)
 
 class RepresentativeSkinMainView(discord.ui.View):
     def __init__(self, user: discord.Member):
@@ -210,12 +210,11 @@ def create_skin_preview_embed(user: discord.Member, champion_name: str, skins: l
         title_suffix = ""
         title_prefix = ""
     
-    # 제목 설정
-    title = f"{title_prefix}{champion_name} - {current_skin['skin_name_kr']}{title_suffix}"
+    # 제목 설정 - 스킨 이름만 표시
+    title = f"{title_prefix}{current_skin['skin_name_kr']}{title_suffix}"
     
     embed = discord.Embed(
         title=title,
-        description=f"**{current_skin['skin_name_en']}**",
         color=0xFFD700 if (is_current_representative or (is_basic_skin and not current_representative)) else 0x00BFFF
     )
     
