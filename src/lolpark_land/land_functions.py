@@ -93,7 +93,7 @@ def draw_random_skin(user_id, box_type=None, line_type=None, is_most_pick=False,
             for index, info in enumerate(most_pick_champions_info):
                 if index >= 5:
                     break
-                most_pick_champions.append(info[0])
+                most_pick_champions.append(info[0].capitalize())
 
             if most_pick_champions:
                 kr_conditions = " OR ".join([f"champion_name_kr = ?" for _ in most_pick_champions])
