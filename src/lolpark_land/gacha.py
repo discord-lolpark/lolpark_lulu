@@ -63,6 +63,33 @@ RARITY_COLORS = {
     "Exalted": 0xff0000      # 빨간색
 }
 
+# 영어 등급명을 한글로 변환하는 딕셔너리
+RARITY_KOREAN = {
+    "Common": "일반급",
+    "Rare": "희귀급", 
+    "Epic": "서사급",
+    "Legendary": "전설급",
+    "Mythic": "신화급",
+    "Ultimate": "초월급",
+    "Exalted": "고귀급"
+}
+
+def get_korean_rarity(rarity):
+    """영어 등급명을 한글로 변환"""
+    return RARITY_KOREAN.get(rarity, rarity)
+
+def get_rarity_emoji(rarity):
+    """등급에 따른 이모지 반환"""
+    return {
+        'Exalted': '<:exalted_emoji:1386186543496040489>',      # 고귀급
+        'Ultimate': '<:ultimate_emoji:1386186526320365661>',    # 초월급
+        'Mythic': '<:mythic_emoji:1386186513569812520>',        # 신화급
+        'Legendary': '<:legendary_emoji:1386186501003415705>',  # 전설급
+        'Epic': '<:epic_emoji:1386186119359496326>',            # 서사급
+        'Rare': '🔵',                                           # 희귀급
+        'Common': '⚪'                                          # 일반급
+    }.get(rarity, '📦')
+
 class GachaButtonView(discord.ui.View):
     def __init__(self, user_id):
         super().__init__(timeout=60.0)
@@ -392,11 +419,12 @@ class ConfirmGachaView(discord.ui.View):
                 # 가장 높은 등급의 스킨 찾기
                 best_skin = max(results, key=lambda x: rarity_priority.get(x.get('rarity', 'Rare'), 0))
                 best_rarity = best_skin.get('rarity', 'Rare')
+                best_rarity_kr = get_korean_rarity(best_rarity)  # 한글 등급명
                 embed_color = RARITY_COLORS.get(best_rarity, 0x00ff00)
                 
                 embed = discord.Embed(
                     title=f"🎉 {count}번 뽑기 결과!",
-                    description=f"**{successful_draws}/{count}**번 성공!\n\n🌟 **최고 등급**: {best_skin['skin_name_kr']} ({best_skin['champion_name_kr']}) - **{best_rarity}**",
+                    description=f"**{successful_draws}/{count}**번 성공!\n\n🌟 **최고 등급**: {best_skin['skin_name_kr']} ({best_skin['champion_name_kr']}) - **{best_rarity_kr}**",
                     color=embed_color
                 )
                 
@@ -432,18 +460,10 @@ class ConfirmGachaView(discord.ui.View):
                     key=lambda x: rarity_priority.get(x[0], 0), reverse=True)
                 
                 for rarity, count_r in sorted_rarities:
-                    # 해당 등급의 이모지 추가
-                    rarity_emoji = {
-                        'Exalted': '🌟',
-                        'Ultimate': '✨', 
-                        'Mythic': '💎',
-                        'Legendary': '🔥',
-                        'Epic': '🟣',
-                        'Rare': '🔵',
-                        'Common': '⚪'
-                    }.get(rarity, '📦')
-                    
-                    result_text += f"{rarity_emoji} **{rarity}**: {count_r}개\n"
+                    # 커스텀 이모지 사용
+                    rarity_emoji = get_rarity_emoji(rarity)
+                    rarity_kr = get_korean_rarity(rarity)  # 한글 등급명
+                    result_text += f"{rarity_emoji} **{rarity_kr}**: {count_r}개\n"
                 
                 embed.add_field(name="📊 등급별 결과", value=result_text, inline=True)
                 embed.add_field(name="💰 사용한 LC", value=f"{actual_price:,} LC", inline=True)
@@ -456,15 +476,7 @@ class ConfirmGachaView(discord.ui.View):
                 skin_list = ""
                 for i, result in enumerate(sorted_results):
                     rarity = result.get('rarity', 'Rare')
-                    rarity_emoji = {
-                        'Exalted': '🌟',
-                        'Ultimate': '✨', 
-                        'Mythic': '💎',
-                        'Legendary': '🔥',
-                        'Epic': '🟣',
-                        'Rare': '🔵',
-                        'Common': '⚪'
-                    }.get(rarity, '📦')
+                    rarity_emoji = get_rarity_emoji(rarity)  # 커스텀 이모지 사용
                     
                     # 가장 좋은 스킨은 특별 표시
                     if result == best_skin:
