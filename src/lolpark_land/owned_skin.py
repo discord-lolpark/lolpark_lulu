@@ -1,5 +1,6 @@
 import discord
 from lolpark_land.land_functions import execute_select_query
+from lolpark_land.representative_skin import get_current_representative_skin
 
 async def show_owned_skins(interaction: discord.Interaction, champion_name: str = None):
     """
@@ -35,6 +36,9 @@ async def show_champion_owned_skins(interaction: discord.Interaction, user_id: s
     # 보유 스킨 조회 (기본 스킨 포함)
     owned_skins = get_champion_owned_skins(user_id, champion_name)
     
+    # 현재 대표 스킨 조회
+    representative_skin = get_current_representative_skin(user_id, champion_name)
+    
     if not owned_skins:
         embed = discord.Embed(
             title=f"📦 {champion_name} 보유 스킨",
@@ -42,11 +46,18 @@ async def show_champion_owned_skins(interaction: discord.Interaction, user_id: s
             color=0x808080
         )
         # 기본 스킨만 표시
-        embed.add_field(
-            name="🔵 기본 스킨",
-            value=f"**{champion_name}**",
-            inline=False
-        )
+        if not representative_skin:  # 대표 스킨이 없으면 기본 스킨이 대표
+            embed.add_field(
+                name="보유 스킨",
+                value=f"⭐ **{champion_name}** (대표 스킨)",
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name="보유 스킨",
+                value=f"**{champion_name}**",
+                inline=False
+            )
     else:
         embed = discord.Embed(
             title=f"📦 {champion_name} 보유 스킨",
@@ -57,10 +68,18 @@ async def show_champion_owned_skins(interaction: discord.Interaction, user_id: s
         # 스킨 목록 추가
         skin_list = []
         for skin in owned_skins:
-            if skin["skin_id"].endswith("_0"):  # 기본 스킨
-                skin_list.append(f"🔵 **{skin['skin_name_kr']}** (기본)")
+            skin_name = skin['skin_name_kr']
+            
+            # 대표 스킨 확인
+            if representative_skin and skin["skin_id"] == representative_skin["skin_id"]:
+                # 설정된 대표 스킨
+                skin_list.append(f"⭐ **{skin_name}** (대표 스킨)")
+            elif skin["skin_id"].endswith("_0") and not representative_skin:
+                # 대표 스킨이 없으면 기본 스킨이 대표
+                skin_list.append(f"⭐ **{skin_name}** (대표 스킨)")
             else:
-                skin_list.append(f"🎨 **{skin['skin_name_kr']}**")
+                # 일반 스킨
+                skin_list.append(f"**{skin_name}**")
         
         # 스킨이 많으면 여러 필드로 나누기
         if len(skin_list) <= 10:
@@ -188,13 +207,25 @@ def create_champion_skins_embed(user: discord.Member, champions_data: list, curr
         color=0x00BFFF
     )
     
+    # 현재 대표 스킨 조회
+    user_id = str(user.id)
+    representative_skin = get_current_representative_skin(user_id, champion_name)
+    
     # 스킨 목록 추가
     skin_list = []
     for skin in owned_skins:
-        if skin["skin_id"].endswith("_0"):  # 기본 스킨
-            skin_list.append(f"🔵 **{skin['skin_name_kr']}** (기본)")
+        skin_name = skin['skin_name_kr']
+        
+        # 대표 스킨 확인
+        if representative_skin and skin["skin_id"] == representative_skin["skin_id"]:
+            # 설정된 대표 스킨
+            skin_list.append(f"⭐ **{skin_name}** (대표 스킨)")
+        elif skin["skin_id"].endswith("_0") and not representative_skin:
+            # 대표 스킨이 없으면 기본 스킨이 대표
+            skin_list.append(f"⭐ **{skin_name}** (대표 스킨)")
         else:
-            skin_list.append(f"🎨 **{skin['skin_name_kr']}**")
+            # 일반 스킨
+            skin_list.append(f"**{skin_name}**")
     
     # 스킨이 많으면 여러 필드로 나누기
     if len(skin_list) <= 15:
