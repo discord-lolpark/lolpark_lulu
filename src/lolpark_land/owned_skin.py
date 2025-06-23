@@ -18,7 +18,7 @@ async def show_owned_skins(interaction: discord.Interaction, champion_name: str 
 
 async def show_champion_owned_skins(interaction: discord.Interaction, user_id: str, champion_name: str):
     """
-    특정 챔피언의 보유 스킨을 표시하는 함수
+    특정 챔피언의 보유 스킨을 표시하는 함수 (중복 개수 포함)
     """
     # 챔피언 이름 검증
     from functions import get_full_champion_eng_name
@@ -33,7 +33,7 @@ async def show_champion_owned_skins(interaction: discord.Interaction, user_id: s
         await interaction.edit_original_response(embed=embed)
         return
     
-    # 보유 스킨 조회 (기본 스킨 포함)
+    # 보유 스킨 조회 (기본 스킨 포함, 중복 개수 포함)
     owned_skins = get_champion_owned_skins(user_id, champion_name)
     
     # 현재 대표 스킨 조회
@@ -59,27 +59,35 @@ async def show_champion_owned_skins(interaction: discord.Interaction, user_id: s
                 inline=False
             )
     else:
+        # 총 스킨 개수 계산 (중복 포함)
+        total_count = sum(skin['count'] for skin in owned_skins)
+        unique_count = len(owned_skins)
+        
         embed = discord.Embed(
             title=f"📦 {champion_name} 보유 스킨",
-            description=f"**{champion_name}**의 보유 스킨 목록입니다.\n총 **{len(owned_skins)}개** 스킨을 보유하고 있습니다.",
+            description=f"**{champion_name}**의 보유 스킨 목록입니다.\n고유 스킨: **{unique_count}개** | 총 보유: **{total_count}개**",
             color=0x00BFFF
         )
         
-        # 스킨 목록 추가
+        # 스킨 목록 추가 (중복 개수 포함)
         skin_list = []
         for skin in owned_skins:
             skin_name = skin['skin_name_kr']
+            count = skin['count']
+            
+            # 개수 표시 (1개면 표시 안함, 2개 이상이면 표시)
+            count_display = f" x{count}" if count > 1 else ""
             
             # 대표 스킨 확인
             if representative_skin and skin["skin_id"] == representative_skin["skin_id"]:
                 # 설정된 대표 스킨
-                skin_list.append(f"⭐ **{skin_name}** (대표 스킨)")
+                skin_list.append(f"⭐ **{skin_name}**{count_display} (대표 스킨)")
             elif skin["skin_id"].endswith("_0") and not representative_skin:
                 # 대표 스킨이 없으면 기본 스킨이 대표
-                skin_list.append(f"⭐ **{skin_name}** (대표 스킨)")
+                skin_list.append(f"⭐ **{skin_name}**{count_display} (대표 스킨)")
             else:
                 # 일반 스킨
-                skin_list.append(f"**{skin_name}**")
+                skin_list.append(f"**{skin_name}**{count_display}")
         
         # 스킨이 많으면 여러 필드로 나누기
         if len(skin_list) <= 10:
@@ -123,14 +131,15 @@ async def show_all_champions_skins(interaction: discord.Interaction, user_id: st
 
 def get_champion_owned_skins(user_id: str, champion_name: str):
     """
-    특정 챔피언의 보유 스킨을 조회하는 함수 (기본 스킨 포함)
+    특정 챔피언의 보유 스킨을 조회하는 함수 (기본 스킨 포함, 중복 개수 포함)
     """
-    # 사용자가 보유한 스킨들 조회
+    # 사용자가 보유한 스킨들 조회 (중복 개수 포함)
     query = """
-    SELECT s.skin_id, s.skin_name_kr, s.skin_name_en, s.file_name
+    SELECT s.skin_id, s.skin_name_kr, s.skin_name_en, s.file_name, COUNT(*) as count
     FROM user_skins us
     JOIN skins s ON us.skin_id = s.skin_id
     WHERE us.user_id = ? AND s.champion_name_kr = ?
+    GROUP BY s.skin_id, s.skin_name_kr, s.skin_name_en, s.file_name
     ORDER BY CAST(REPLACE(s.skin_id, '_', '') AS INTEGER)
     """
     results = execute_select_query(query, (user_id, champion_name))
@@ -142,10 +151,11 @@ def get_champion_owned_skins(user_id: str, champion_name: str):
                 "skin_id": result[0],
                 "skin_name_kr": result[1],
                 "skin_name_en": result[2],
-                "file_name": result[3]
+                "file_name": result[3],
+                "count": result[4]  # 중복 개수 추가
             })
     
-    # 기본 스킨 추가 (항상 보유)
+    # 기본 스킨 추가 (항상 보유, 개수는 1개)
     from functions import get_full_champion_eng_name
     champion_eng = get_full_champion_eng_name(champion_name)
     
@@ -154,7 +164,8 @@ def get_champion_owned_skins(user_id: str, champion_name: str):
             "skin_id": f"{champion_eng}_0",
             "skin_name_kr": f"{champion_name}",
             "skin_name_en": f"{champion_eng}",
-            "file_name": f"{champion_eng}_0"
+            "file_name": f"{champion_eng}_0",
+            "count": 1  # 기본 스킨은 항상 1개
         }
         
         # 기본 스킨을 맨 앞에 추가
@@ -164,7 +175,7 @@ def get_champion_owned_skins(user_id: str, champion_name: str):
 
 def get_all_champions_with_skins(user_id: str):
     """
-    스킨을 보유한 모든 챔피언들을 조회하는 함수
+    스킨을 보유한 모든 챔피언들을 조회하는 함수 (중복 개수 포함)
     """
     query = """
     SELECT DISTINCT s.champion_name_kr, s.champion_name_en
@@ -181,29 +192,38 @@ def get_all_champions_with_skins(user_id: str):
             champion_kr = result[0]
             champion_en = result[1]
             
-            # 해당 챔피언의 보유 스킨 수 조회
+            # 해당 챔피언의 보유 스킨 수 조회 (중복 개수 포함)
             owned_skins = get_champion_owned_skins(user_id, champion_kr)
+            
+            # 총 스킨 개수 계산 (중복 포함)
+            total_count = sum(skin['count'] for skin in owned_skins)
+            unique_count = len(owned_skins)
             
             champions.append({
                 "champion_name_kr": champion_kr,
                 "champion_name_en": champion_en,
                 "owned_skins": owned_skins,
-                "skin_count": len(owned_skins)
+                "skin_count": unique_count,  # 고유 스킨 개수
+                "total_count": total_count   # 총 보유 개수 (중복 포함)
             })
     
     return champions
 
 def create_champion_skins_embed(user: discord.Member, champions_data: list, current_index: int):
     """
-    챔피언별 보유 스킨 embed를 생성하는 함수
+    챔피언별 보유 스킨 embed를 생성하는 함수 (중복 개수 포함)
     """
     current_champion = champions_data[current_index]
     champion_name = current_champion["champion_name_kr"]
     owned_skins = current_champion["owned_skins"]
     
+    # 총 스킨 개수 계산 (중복 포함)
+    total_count = sum(skin['count'] for skin in owned_skins)
+    unique_count = len(owned_skins)
+    
     embed = discord.Embed(
         title=f"📦 {champion_name} 보유 스킨",
-        description=f"**{champion_name}**의 보유 스킨 목록입니다.\n총 **{len(owned_skins)}개** 스킨을 보유하고 있습니다.",
+        description=f"**{champion_name}**의 보유 스킨 목록입니다.\n고유 스킨: **{unique_count}개** | 총 보유: **{total_count}개**",
         color=0x00BFFF
     )
     
@@ -211,21 +231,25 @@ def create_champion_skins_embed(user: discord.Member, champions_data: list, curr
     user_id = str(user.id)
     representative_skin = get_current_representative_skin(user_id, champion_name)
     
-    # 스킨 목록 추가
+    # 스킨 목록 추가 (중복 개수 포함)
     skin_list = []
     for skin in owned_skins:
         skin_name = skin['skin_name_kr']
+        count = skin['count']
+        
+        # 개수 표시 (1개면 표시 안함, 2개 이상이면 표시)
+        count_display = f" x{count}" if count > 1 else ""
         
         # 대표 스킨 확인
         if representative_skin and skin["skin_id"] == representative_skin["skin_id"]:
             # 설정된 대표 스킨
-            skin_list.append(f"⭐ **{skin_name}** (대표 스킨)")
+            skin_list.append(f"⭐ **{skin_name}**{count_display} (대표 스킨)")
         elif skin["skin_id"].endswith("_0") and not representative_skin:
             # 대표 스킨이 없으면 기본 스킨이 대표
-            skin_list.append(f"⭐ **{skin_name}** (대표 스킨)")
+            skin_list.append(f"⭐ **{skin_name}**{count_display} (대표 스킨)")
         else:
             # 일반 스킨
-            skin_list.append(f"**{skin_name}**")
+            skin_list.append(f"**{skin_name}**{count_display}")
     
     # 스킨이 많으면 여러 필드로 나누기
     if len(skin_list) <= 15:

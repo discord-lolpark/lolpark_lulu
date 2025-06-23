@@ -94,12 +94,12 @@ class ChampionInputModal(discord.ui.Modal):
 
 def get_user_champion_skins(user_id: str, champion_name: str):
     """
-    사용자가 보유한 특정 챔피언의 모든 스킨을 조회하는 함수
+    사용자가 보유한 특정 챔피언의 모든 스킨을 조회하는 함수 (중복 제거)
     기본 스킨(0번)은 항상 포함 - 하드코딩으로 생성
     """
-    # 사용자가 보유한 스킨들 조회
+    # 사용자가 보유한 스킨들 조회 (중복 제거)
     query = """
-    SELECT s.skin_id, s.skin_name_kr, s.skin_name_en, s.file_name
+    SELECT DISTINCT s.skin_id, s.skin_name_kr, s.skin_name_en, s.file_name
     FROM user_skins us
     JOIN skins s ON us.skin_id = s.skin_id
     WHERE us.user_id = ? AND s.champion_name_kr = ?
@@ -134,7 +134,7 @@ def get_user_champion_skins(user_id: str, champion_name: str):
         champion_skins.insert(0, basic_skin)
         print(f"기본 스킨 생성됨: {basic_skin}")
     
-    print(f"최종 스킨 목록: {champion_skins}")
+    print(f"최종 스킨 목록 (중복 제거): {champion_skins}")
     return champion_skins
 
 def get_current_representative_skin(user_id: str, champion_name: str):
