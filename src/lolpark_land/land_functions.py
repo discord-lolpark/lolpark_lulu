@@ -163,11 +163,12 @@ def get_skin_image_url(champion_name: str, file_name: str) -> str:
     if not file_name or not champion_name:
         return None
     
+    directory_name = champion_name[0].upper() + champion_name[1:].lower()
     champion_name = champion_name.capitalize()
     file_name = file_name.capitalize()
     
     # 로컬 assets 폴더의 스킨 이미지 경로 (챔피언별 폴더)
     import os
-    champion_path = f"lolpark_assets/splash/{champion_name}/{file_name}.jpg"
+    champion_path = f"lolpark_assets/splash/{directory_name}/{file_name}.jpg"
     image_path = f"C:/Users/Desktop/lolpark_githubs/{champion_path}" if os.path.exists(f"C:/Users/Desktop/lolpark_githubs/{champion_path}") else f"/{champion_path}"
     return image_path
