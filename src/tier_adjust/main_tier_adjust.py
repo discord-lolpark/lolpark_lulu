@@ -92,6 +92,11 @@ async def apply_tier_adjust(interaction: discord.Interaction, member: discord.Me
         from lolpark_premium import send_tier_adjust_profile
         await send_tier_adjust_profile(private_thread, member)
 
+        try:
+            await start_tier_vote(interaction, target_channel=private_thread)
+        except Exception as e:
+            print(f"투표 생성 중 오류 발생 : {e}")
+
     except discord.Forbidden:
         await interaction.channel.send("봇에 채널을 생성하거나 권한을 설정할 권한이 없습니다.", delete_after=1800)
     except discord.HTTPException as e:
@@ -102,3 +107,42 @@ async def apply_tier_adjust(interaction: discord.Interaction, member: discord.Me
                                    )
     
     return tier_adjust_channel.id
+
+
+async def start_tier_vote(interaction: discord.Interaction, target_channel: discord.TextChannel = None):
+    
+    from tier_adjust.vote_tier_adjust import TierAdjustVoteView
+
+    # 자문단만 투표 가능
+    advisor_role = discord.utils.get(interaction.guild.roles, name="티어 조정 자문단")
+    if advisor_role not in interaction.user.roles:
+        await interaction.response.send_message("자문단만 진행할 수 있습니다.", ephemeral=True)
+        return
+
+    if target_channel is None:
+        target_channel = interaction.channel
+    
+    # 스레드인지 확인
+    if not isinstance(target_channel, discord.Thread):
+        await interaction.response.send_message("스레드에서 투표를 진행해주세요.", ephemeral=True)
+        return
+
+    # 채널 이름에서 멤버 정보 추출
+    if "자문단 토론" not in target_channel.name:
+        await interaction.response.send_message("티어조정 스레드가 아닙니다.", ephemeral=True)
+        return
+    
+    # 채널 이름에서 멤버 닉네임 추출 (예: "닉네임 티어조정")
+    member_name = target_channel.name.replace(" 자문단 토론", "").strip()
+    
+    vote_view = TierAdjustVoteView(member_name, target_channel)
+    
+    embed = discord.Embed(
+        title="🗳️ 티어 조정 투표",
+        description=f"**{member_name}님**의 티어 조정에 대해 투표해주세요.\n\n"
+                   f"• **상승/하락** 선택 후 구체적인 티어를 입력하세요\n"
+                   f"• 유지를 선택하면 현재 티어를 유지합니다",
+        color=discord.Color.blue()
+    )
+    
+    await interaction.response.send_message(embed=embed, view=vote_view)
