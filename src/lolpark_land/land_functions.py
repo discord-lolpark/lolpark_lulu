@@ -34,15 +34,28 @@ def draw_random_skin(user_id, box_type=None, line_type=None, is_most_pick=False,
     import random
     from lolpark_land.land_database import execute_select_query, execute_post_query
     
-    # 레어리티별 가중치 설정 (높을수록 뽑힐 확률이 높음)
-    RARITY_WEIGHTS = {
-        'Common': 50,      # 가장 높은 확률
-        'Rare': 40,         # 중간 확률
-        'Epic': 12.5,         # 낮은 확률
-        'Legendary': 8,     # 매우 낮은 확률
-        'Mythic': 3,        # 극히 낮은 확률
-        'Ultimate': 1,      # 최저 확률
-        'Exalted': 0.5      # 최극히 낮은 확률
+    # 일반 뽑기 가중치 (common, rare 포함)
+    NORMAL_GACHA_WEIGHTS = {
+        'common': 35,      # 35%
+        'rare': 25,        # 25%
+        'epic': 25,        # 25%
+        'legendary': 10,   # 10%
+        'mythic': 3.5,     # 3.5%
+        'ultimate': 1,     # 1%
+        'exalted': 0.3,    # 0.3%
+        'transcendent': 0.15, # 0.15%
+        'immortal': 0.05,  # 0.05%
+    }
+    
+    # 고급 뽑기 가중치 (common, rare 제외)
+    PREMIUM_GACHA_WEIGHTS = {
+        'epic': 70.0,      # 70%
+        'legendary': 22.0, # 22%
+        'mythic': 6.0,     # 6%
+        'ultimate': 1.5,   # 1.5%
+        'exalted': 0.4,    # 0.4%
+        'transcendent': 0.08, # 0.08%
+        'immortal': 0.02   # 0.02%
     }
     
     # 0. 기본 쿼리 작성
@@ -54,10 +67,17 @@ def draw_random_skin(user_id, box_type=None, line_type=None, is_most_pick=False,
     """
     params = []
 
-    # 1. except_common 조건 추가 (대소문자 수정)
+    # 1. except_common 조건 추가 - 고급 뽑기 설정
     if except_common:
-        query += " AND rarity != ?"
-        params.append('Common')  # 'common' -> 'Common'
+        # 고급 뽑기: common과 rare 제외
+        query += " AND rarity NOT IN (?, ?)"
+        params.append('Common')
+        params.append('Rare')
+        # 고급 뽑기 가중치 사용
+        CURRENT_WEIGHTS = PREMIUM_GACHA_WEIGHTS
+    else:
+        # 일반 뽑기 가중치 사용
+        CURRENT_WEIGHTS = NORMAL_GACHA_WEIGHTS
     
     # 2. box_type 조건 추가 (테마 검색)
     if box_type:
@@ -123,7 +143,8 @@ def draw_random_skin(user_id, box_type=None, line_type=None, is_most_pick=False,
     
     for skin in all_skins:
         rarity = skin[5]  # rarity는 6번째 컬럼 (인덱스 5)
-        weight = RARITY_WEIGHTS.get(rarity, 1)  # 기본 가중치 1
+        # 현재 가챠 타입에 맞는 가중치 사용
+        weight = CURRENT_WEIGHTS.get(rarity.lower(), 1)  # 소문자로 변환하여 매칭
         
         # 가중치만큼 리스트에 추가 (소수점 처리를 위해 반복 횟수 조정)
         repeat_count = max(1, int(weight * 10))  # 소수점 가중치 처리
@@ -163,9 +184,9 @@ def get_skin_image_url(champion_name: str, file_name: str) -> str:
     if not file_name or not champion_name:
         return None
     
-    directory_name = champion_name[0].upper() + champion_name[1:].lower()
-    champion_name = champion_name.capitalize()
-    file_name = file_name.capitalize()
+    directory_name = champion_name
+    champion_name = champion_name
+    file_name = file_name
     
     # 로컬 assets 폴더의 스킨 이미지 경로 (챔피언별 폴더)
     import os

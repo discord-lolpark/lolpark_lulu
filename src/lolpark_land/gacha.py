@@ -5,31 +5,31 @@ from lolpark_land.land_functions import draw_random_skin, get_skin_image_url
 # ===== 상자 정보 설정 =====
 BOX_INFO = {
     "normal": {
-        "title": "📦 일반 상자",
+        "title": "일반 상자",
         "description": "**모든 스킨**에서 무작위로 뽑을 수 있는 기본 상자입니다.\n모든 등급의 스킨이 동일한 확률로 나옵니다.",
         "price": 100,
         "color": 0x808080
     },
     "premium": {
-        "title": "💎 고급 상자",
-        "description": "**레어 등급 이상** 스킨만 나오는 프리미엄 상자입니다.\n높은 등급의 스킨을 획득할 확률이 높습니다!",
-        "price": 300,
+        "title": "고급 상자",
+        "description": "**서사급 등급 이상** 스킨만 나오는 프리미엄 상자입니다.\n높은 등급의 스킨을 획득할 확률이 높습니다!",
+        "price": 500,
         "color": 0x00ff00
     },
     "line": {
-        "title": "🎯 라인별 상자",
+        "title": "라인별 상자",
         "description": "**특정 라인의 챔피언** 스킨만 나오는 상자입니다.\n원하는 라인을 선택해주세요!",
         "price": 1000,
         "color": 0x5865f2
     },
     "theme": {
-        "title": "✨ 테마 상자",
+        "title": "테마 상자",
         "description": "**특정 테마의 스킨**만 나오는 상자입니다.\n별 수호자, 프로젝트, K/DA 등 다양한 테마를 선택할 수 있습니다.",
         "price": 3000,
         "color": 0xed4245
     },
     "most_pick": {
-        "title": "🔥 모스트 픽 상자",
+        "title": "모스트 픽 상자",
         "description": "**본인 모스트 픽 5개 챔피언**의 스킨만 나오는 롤파크 프리미엄 전용 상자입니다!",
         "price": 2000,
         "color": 0xffa500
@@ -81,13 +81,15 @@ def get_korean_rarity(rarity):
 def get_rarity_emoji(rarity):
     """등급에 따른 이모지 반환"""
     return {
-        'Exalted': '<:exalted_emoji:1386186543496040489>',      # 고귀급
-        'Ultimate': '<:ultimate_emoji:1386186526320365661>',    # 초월급
-        'Mythic': '<:mythic_emoji:1386186513569812520>',        # 신화급
-        'Legendary': '<:legendary_emoji:1386186501003415705>',  # 전설급
-        'Epic': '<:epic_emoji:1386186119359496326>',            # 서사급
-        'Rare': '🔵',                                           # 희귀급
-        'Common': '⚪'                                          # 일반급
+        'immortal': '<:transcendent_emoji:1388013553373413428>',      # 불멸
+        'transcendent': '<:transcendent_emoji:1388013553373413428>',      # 초월
+        'exalted': '<:exalted_emoji:1386186543496040489>',      # 고귀급
+        'ultimate': '<:ultimate_emoji:1386186526320365661>',    # 초월급
+        'mythic': '<:mythic_emoji:1386186513569812520>',        # 신화급
+        'legendary': '<:legendary_emoji:1386186501003415705>',  # 전설급
+        'epic': '<:epic_emoji:1386186119359496326>',            # 서사급
+        'rare': '🔵',                                           # 희귀급
+        'common': '⚪'                                          # 일반급
     }.get(rarity, '📦')
 
 class GachaButtonView(discord.ui.View):
@@ -407,13 +409,15 @@ class ConfirmGachaView(discord.ui.View):
                 
                 # 등급 우선순위 정의 (높을수록 좋은 등급)
                 rarity_priority = {
-                    'Common': 0,
-                    'Rare': 1,
-                    'Epic': 2,
-                    'Legendary': 3,
-                    'Mythic': 4,
-                    'Ultimate': 5,
-                    'Exalted': 6
+                    'common': 0,
+                    'rare': 1,
+                    'epic': 2,
+                    'legendary': 3,
+                    'mythic': 4,
+                    'ultimate': 5,
+                    'exalted': 6,
+                    'transcendent': 7,
+                    'immortal': 8
                 }
                 
                 # 가장 높은 등급의 스킨 찾기
