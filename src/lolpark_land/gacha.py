@@ -65,13 +65,15 @@ RARITY_COLORS = {
 
 # 영어 등급명을 한글로 변환하는 딕셔너리
 RARITY_KOREAN = {
-    "Common": "일반급",
-    "Rare": "희귀급", 
-    "Epic": "서사급",
-    "Legendary": "전설급",
-    "Mythic": "신화급",
-    "Ultimate": "초월급",
-    "Exalted": "고귀급"
+    "common": "일반급",
+    "rare": "희귀급", 
+    "epic": "서사급",
+    "legendary": "전설급",
+    "mythic": "신화급",
+    "ultimate": "초월급",
+    "exalted": "고귀급",
+    "transcendent": "초월",
+    "immortal": "불멸"
 }
 
 def get_korean_rarity(rarity):
@@ -101,7 +103,7 @@ class GachaButtonView(discord.ui.View):
         """프리미엄 유저를 위한 모스트 픽 상자 버튼 추가"""
         self.add_item(MostPickButton())
 
-    @discord.ui.button(label='일반 상자', style=discord.ButtonStyle.gray, emoji='📦')
+    @discord.ui.button(label='일반 상자', style=discord.ButtonStyle.gray)
     async def normal_box(self, interaction: discord.Interaction, button: discord.ui.Button):
         box_info = BOX_INFO["normal"]
         embed = discord.Embed(
@@ -112,7 +114,7 @@ class GachaButtonView(discord.ui.View):
         view = ConfirmGachaView(self.user_id, box_type="normal", price=box_info["price"])
         await interaction.response.edit_message(embed=embed, view=view)
     
-    @discord.ui.button(label='고급 상자', style=discord.ButtonStyle.green, emoji='💎')
+    @discord.ui.button(label='고급 상자', style=discord.ButtonStyle.green)
     async def premium_box(self, interaction: discord.Interaction, button: discord.ui.Button):
         box_info = BOX_INFO["premium"]
         embed = discord.Embed(
@@ -123,7 +125,7 @@ class GachaButtonView(discord.ui.View):
         view = ConfirmGachaView(self.user_id, box_type="premium", price=box_info["price"])
         await interaction.response.edit_message(embed=embed, view=view)
     
-    @discord.ui.button(label='라인별 상자', style=discord.ButtonStyle.blurple, emoji='🎯')
+    @discord.ui.button(label='라인별 상자', style=discord.ButtonStyle.blurple)
     async def line_box(self, interaction: discord.Interaction, button: discord.ui.Button):
         box_info = BOX_INFO["line"]
         embed = discord.Embed(
@@ -134,7 +136,7 @@ class GachaButtonView(discord.ui.View):
         view = LineButtonView(self.user_id)
         await interaction.response.edit_message(embed=embed, view=view)
     
-    @discord.ui.button(label='테마 상자', style=discord.ButtonStyle.red, emoji='✨')
+    @discord.ui.button(label='테마 상자', style=discord.ButtonStyle.red)
     async def theme_box(self, interaction: discord.Interaction, button: discord.ui.Button):
         box_info = BOX_INFO["theme"]
         embed = discord.Embed(
@@ -339,10 +341,11 @@ class ConfirmGachaView(discord.ui.View):
                 # 1번 뽑기는 기존 방식 유지
                 result = results[0]
                 rarity = result.get('rarity', 'Rare')
+                rarity_kor = get_korean_rarity(rarity)
                 embed_color = RARITY_COLORS.get(rarity, 0xffd700)
                 
                 embed = discord.Embed(
-                    title=f"🎉 {result['skin_name_kr']} 획득!",
+                    title=f"{result['skin_name_kr']} 획득!",
                     description=f"**{result['skin_name_kr']}**\n({result['champion_name_kr']})",
                     color=embed_color
                 )
@@ -367,19 +370,19 @@ class ConfirmGachaView(discord.ui.View):
                         except FileNotFoundError:
                             file = None
                 
-                embed.add_field(name="등급", value=rarity, inline=True)
+                embed.add_field(name="등급", value=rarity_kor, inline=True)
                 embed.add_field(name="사용한 LC", value=f"{actual_price:,} LC", inline=True)
                 embed.add_field(name="잔여 LC", value=f"{new_coin_amount:,} LC", inline=True)
                 
                 # 특별한 등급 표시
-                if rarity == "Ultimate":
-                    embed.add_field(name="✨", value="**궁극의 스킨!**", inline=True)
-                elif rarity == "Exalted":
-                    embed.add_field(name="🌟", value="**최고급 스킨!**", inline=True)
-                elif rarity == "Mythic":
-                    embed.add_field(name="💎", value="**신화급 스킨!**", inline=True)
-                elif rarity == "Legendary":
-                    embed.add_field(name="🔥", value="**전설급 스킨!**", inline=True)
+                if rarity == "ultimate":
+                    embed.add_field(name="✨", value="**초월급 스킨!**", inline=True)
+                elif rarity == "exalted":
+                    embed.add_field(name="🌟", value="**고귀급 스킨!**", inline=True)
+                elif rarity == "transcendent":
+                    embed.add_field(name="🌟", value="**초월 스킨!**", inline=True)
+                elif rarity == "immortal":
+                    embed.add_field(name="🌟", value="**불멸 스킨!**", inline=True)
                 
                 # 결과 전송
                 if file:
