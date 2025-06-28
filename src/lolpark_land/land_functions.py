@@ -50,7 +50,7 @@ def draw_random_skin(user_id, box_type=None, line_type=None, is_most_pick=False,
     # 고급 뽑기 가중치 (common, rare 제외)
     PREMIUM_GACHA_WEIGHTS = {
         'epic': 70.0,      # 70%
-        'legendary': 22.0, # 22%
+        'legendary': 23.0, # 23%
         'mythic': 6.0,     # 6%
         'ultimate': 1.5,   # 1.5%
         'exalted': 0.4,    # 0.4%
