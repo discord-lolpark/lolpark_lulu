@@ -32,8 +32,8 @@ async def daily_update_total_record():
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
     await setup_attendance(bot)
+    await bot.tree.sync()
 
 
 @bot.tree.command(name="전적")
