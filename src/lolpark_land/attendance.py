@@ -78,17 +78,35 @@ class AttendanceSystem:
             print(f"사용자 존재 확인 오류: {e}")
             return False
     
-    async def process_attendance(self, user_id):
+    def has_premium_role(self, member):
+        """사용자가 LOLPARK PREMIUM 역할을 가지고 있는지 확인"""
+        try:
+            if member is None:
+                return False
+            
+            for role in member.roles:
+                if role.name == "LOLPARK PREMIUM":
+                    return True
+            return False
+        except Exception as e:
+            print(f"프리미엄 역할 확인 오류: {e}")
+            return False
+    
+    async def process_attendance(self, user_id, member=None):
         """출석체크 전체 프로세스 처리 (트랜잭션으로 묶음)"""
         async with self._lock:  # 동시성 제어
             try:
                 # 사용자 존재 확인
                 if not self.user_exists(user_id):
-                    return False, "사용자 정보를 찾을 수 없습니다."
+                    return False, "아직 롤파크랜드에 가입되지 않았습니다.\n<#1385406629146525798>에서 /랜드등록을 통해 먼저 가입해주세요"
                 
                 # 오늘 이미 출석했는지 확인
                 if self.has_attended_today(user_id):
                     return False, "오늘은 이미 출석체크를 완료하셨습니다!"
+                
+                # 프리미엄 역할 확인
+                is_premium = self.has_premium_role(member)
+                reward_amount = 5000 if is_premium else 1000
                 
                 today = self.get_korean_date_string()
                 
@@ -109,9 +127,9 @@ class AttendanceSystem:
                         # 2. LC 보상 지급
                         cursor.execute('''
                             UPDATE users 
-                            SET lolpark_coin = lolpark_coin + 1000 
+                            SET lolpark_coin = lolpark_coin + ? 
                             WHERE user_id = ?
-                        ''', (str(user_id),))
+                        ''', (reward_amount, str(user_id)))
                         
                         # 업데이트된 행이 있는지 확인
                         if cursor.rowcount == 0:
@@ -128,7 +146,13 @@ class AttendanceSystem:
                         # 트랜잭션 커밋
                         conn.commit()
                         
-                        return True, f"출석체크 완료! 1000 LC가 지급되었습니다.\n현재 보유 LC: {current_lc:,}"
+                        # 메시지 생성
+                        if is_premium:
+                            message = f"출석체크 완료! {reward_amount:,} LC (롤파크 프리미엄 보너스 5배) 획득!\n현재 보유 LC: {current_lc:,}"
+                        else:
+                            message = f"출석체크 완료! {reward_amount:,} LC가 지급되었습니다.\n현재 보유 LC: {current_lc:,}"
+                        
+                        return True, message
                         
                     except sqlite3.Error as e:
                         # 트랜잭션 롤백
@@ -154,12 +178,13 @@ class AttendanceCog(commands.Cog):
     async def attendance_check(self, interaction: discord.Interaction):
         user_id = interaction.user.id
         user_name = get_nickname(interaction.user)
+        member = interaction.user if hasattr(interaction.user, 'roles') else None
         
         # 응답 지연 방지
         await interaction.response.defer()
         
         try:
-            success, message = await attendance_system.process_attendance(user_id)
+            success, message = await attendance_system.process_attendance(user_id, member)
             
             if success:
                 embed = discord.Embed(
