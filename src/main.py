@@ -9,6 +9,7 @@ from bot import bot
 from lolpark_premium import lolpark_premium
 import datetime
 import pytz
+from lolpark_land.attendance import setup_attendance
 
 # 한국 시간대 설정
 korea_timezone = pytz.timezone('Asia/Seoul')
@@ -32,6 +33,7 @@ async def daily_update_total_record():
 @bot.event
 async def on_ready():
     await bot.tree.sync()
+    await setup_attendance(bot)
 
 
 @bot.tree.command(name="전적")
