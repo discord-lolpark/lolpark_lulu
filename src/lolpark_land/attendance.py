@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands, tasks
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, time
 import sqlite3
 import asyncio
 from functions import get_nickname, lol_champion_korean_dict
@@ -217,7 +217,7 @@ class AttendanceCog(commands.Cog):
             )
     
 
-    @tasks.loop(time=datetime.time(hour=15, minute=0))
+    @tasks.loop(time=time(hour=15, minute=0))
     async def daily_attendance_notification(self):
         """매일 오전 0시에 출석체크 알림 메시지 전송"""
 
