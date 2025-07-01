@@ -1,9 +1,12 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from datetime import datetime, timezone, timedelta
 import sqlite3
 import asyncio
-from functions import get_nickname
+from functions import get_nickname, lol_champion_korean_dict
+from lolpark_land.land_config import ATTENDANCE_CHANNEL_ID
+import random
+import os
 
 # 한국 시간대 설정
 KST = timezone(timedelta(hours=9))
@@ -44,6 +47,11 @@ class AttendanceSystem:
         """한국 시간 기준으로 오늘 날짜 반환 (YYYY-MM-DD 형식)"""
         korean_time = datetime.now(KST)
         return korean_time.strftime("%Y-%m-%d")
+    
+    def get_korean_date_formatted(self):
+        """한국 시간 기준으로 오늘 날짜 반환 (MM월 DD일 형식)"""
+        korean_time = datetime.now(KST)
+        return korean_time.strftime("%m월 %d일")
     
     def get_last_attendance_date(self, user_id):
         """사용자의 마지막 출석체크 날짜 반환"""
@@ -207,6 +215,101 @@ class AttendanceCog(commands.Cog):
                 "출석체크 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
                 ephemeral=True
             )
+    
+
+    @tasks.loop(time=datetime.time(hour=0, minute=0, tzinfo=KST))
+    async def daily_attendance_notification(self):
+        """매일 오전 0시에 출석체크 알림 메시지 전송"""
+        if ATTENDANCE_CHANNEL_ID is None:
+            print("출석체크 채널이 설정되지 않았습니다.")
+            return
+        
+        try:
+            channel = self.bot.get_channel(ATTENDANCE_CHANNEL_ID)
+            if channel is None:
+                print(f"채널을 찾을 수 없습니다. ID: {ATTENDANCE_CHANNEL_ID}")
+                return
+            
+            # 오늘 날짜 가져오기
+            today_date = attendance_system.get_korean_date_formatted()
+            
+            # LOLPARKLAND 역할 찾기
+            lolparkland_role = None
+            for guild in self.bot.guilds:
+                for role in guild.roles:
+                    if role.name == "LOLPARKLAND":
+                        lolparkland_role = role
+                        break
+                if lolparkland_role:
+                    break
+            
+            # 임베드 메시지 생성
+            embed = discord.Embed(
+                title="🌅 새로운 하루가 시작되었습니다!",
+                description=f"**{today_date}**입니다!\n\n출석체크를 하여 **무료 LOLPARK COIN**을 지급받으세요!",
+                color=0xffd700  # 금색
+            )
+            
+            embed.add_field(
+                name="💰 보상",
+                value="일반 유저: **1,000 LC**\n프리미엄 유저: **5,000 LC** (5배 보너스!)",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="📝 출석체크 방법",
+                value="현재 채널에서 `/출석` 명령어를 입력하세요!",
+                inline=False
+            )
+            
+            embed.set_footer(text="매일 오전 0시에 갱신됩니다 • LOLPARK LAND")
+
+            try:
+                random_champion = random.choice(list(lol_champion_korean_dict.keys()))
+                file_path = f"/lolpark_assets/splash/{random_champion}/{random_champion}_0.jpg"
+                
+                # 파일 존재 확인
+                if os.path.exists(file_path):
+                    file = discord.File(file_path, filename="champion.jpg")
+                    embed.set_thumbnail(url="attachment://champion.jpg")
+                else:
+                    print(f"파일이 존재하지 않음: {file_path}")
+                    file = None
+                    # 대신 고양이 썸네일 사용
+                    embed.set_thumbnail(url="https://cdn2.thecatapi.com/images/0XYvRd7oD.jpg")
+                
+                # 역할 멘션과 함께 메시지 전송
+                mention_text = lolparkland_role.mention if lolparkland_role else "@LOLPARKLAND"
+                
+                if file:
+                    await channel.send(file=file, content=mention_text, embed=embed)
+                else:
+                    await channel.send(content=mention_text, embed=embed)
+                    
+            except Exception as e:
+                print(f"썸네일 설정 오류: {e}")
+                # 오류 시 기본 썸네일로 대체
+                embed.set_thumbnail(url="https://cdn2.thecatapi.com/images/0XYvRd7oD.jpg")
+                mention_text = lolparkland_role.mention if lolparkland_role else "@LOLPARKLAND"
+                await channel.send(content=mention_text, embed=embed)
+            
+        except Exception as e:
+            print(f"출석체크 알림 전송 오류: {e}")
+    
+    @daily_attendance_notification.before_loop
+    async def before_daily_notification(self):
+        """봇이 준비될 때까지 대기"""
+        await self.bot.wait_until_ready()
+    
+    async def cog_load(self):
+        """Cog가 로드될 때 작업 시작"""
+        self.daily_attendance_notification.start()
+        print("출석체크 알림 시스템이 시작되었습니다.")
+    
+    async def cog_unload(self):
+        """Cog가 언로드될 때 작업 중지"""
+        self.daily_attendance_notification.cancel()
+        print("출석체크 알림 시스템이 중지되었습니다.")
 
 async def setup_attendance(bot):
     """봇에 출석체크 Cog를 추가하는 함수"""
