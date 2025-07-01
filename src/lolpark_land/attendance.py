@@ -217,9 +217,10 @@ class AttendanceCog(commands.Cog):
             )
     
 
-    @tasks.loop(time=datetime.time(hour=0, minute=0, tzinfo=KST))
+    @tasks.loop(time=datetime.time(hour=15, minute=0))
     async def daily_attendance_notification(self):
         """매일 오전 0시에 출석체크 알림 메시지 전송"""
+
         if ATTENDANCE_CHANNEL_ID is None:
             print("출석체크 채널이 설정되지 않았습니다.")
             return
