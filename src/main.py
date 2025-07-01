@@ -237,6 +237,15 @@ async def owned_skins_command(interaction: discord.Interaction, 챔피언이름:
     await show_owned_skins(interaction, 챔피언이름)
 
 
+@bot.tree.command(name="미니게임", description="미니게임을 진행합니다.")
+async def mini_game_command(interaction: discord.Interaction):
+    return
+
+
+@bot.tree.command(name="도박", description="포인트를 걸고 도박을 진행합니다.")
+async def gamble_command(interaction: discord.Interaction):
+    return
+
 
 @bot.command()
 @commands.is_owner()
