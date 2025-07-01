@@ -2,6 +2,8 @@ import discord
 from record import *
 from functions import convert_channel_id_to_name, get_full_champion_kor_name
 
+start_id = 1500
+end_id = 5000
 
 # 승률 계산
 def calculate_win_rate(win: int, lose: int) -> float:
@@ -14,7 +16,7 @@ def calculate_win_rate(win: int, lose: int) -> float:
 # 요약 전적 가져오기 (/전적 사용시, 일반 서버원)
 def get_summarized_record_text(user: discord.member, for_qualification=False):
 
-    stat_dict = get_summoner_stats(user, 1500, 5000)
+    stat_dict = get_summoner_stats(user, start_id, end_id)
 
     total_games = stat_dict["total_games"]
     total_win = stat_dict["wins"]
@@ -34,7 +36,7 @@ def get_banned_by_lane_text(user: discord.Member):
 
     id = user.id
 
-    banned_by_lane_result = get_banned_champions_by_position(id)
+    banned_by_lane_result = get_banned_champions_by_position(id, start_id, end_id)
 
     banned_by_lane_text = f"## {get_nickname(user)}님의 라인별 밴 당한 챔피언 목록\n\n"
 
