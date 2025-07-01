@@ -102,6 +102,7 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
             await send_premium_profile()
 
     if not (lolpark_premium_role and user_premium_role): 
+        await send_standard_profile()
         return
     
     # 자신의 전적을 조회한 경우 추가 기능 버튼 제공
