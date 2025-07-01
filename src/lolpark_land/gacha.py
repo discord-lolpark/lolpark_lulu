@@ -236,7 +236,7 @@ class ConfirmGachaView(discord.ui.View):
     def calculate_price(self, count):
         """뽑기 횟수에 따른 가격 계산 (할인 포함)"""
         if count == 10:
-            return self.price
+            return self.price * 10
         elif count == 50:
             return int(self.price * 50 * 0.9)  # 10% 할인
         elif count == 100:
