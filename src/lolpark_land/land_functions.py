@@ -95,6 +95,12 @@ def draw_random_skin(user_id, box_type=None, line_type=None, is_most_pick=False,
             placeholders = ",".join(["?" for _ in champions_kr_list])
             query += f" AND champion_name_kr IN ({placeholders})"  # 한글 이름으로만 검색
             params.extend(champions_kr_list)
+            # 라인별 픽은 고급 뽑기 자동 적용: common과 rare 제외
+            query += " AND rarity NOT IN (?, ?)"
+            params.append('Common')
+            params.append('Rare')
+            # 고급 뽑기 가중치 사용
+            CURRENT_WEIGHTS = PREMIUM_GACHA_WEIGHTS
             print(f"[DEBUG] 라인 챔피언들 (한글): {champions_kr_list}")
         except ImportError as e:
             print(f"get_champions_per_line 함수 import 실패: {e}")
@@ -113,7 +119,7 @@ def draw_random_skin(user_id, box_type=None, line_type=None, is_most_pick=False,
             for index, info in enumerate(most_pick_champions_info):
                 if index >= 5:
                     break
-                most_pick_champions.append(info[0].capitalize())
+                most_pick_champions.append(info[0])
 
             if most_pick_champions:
                 kr_conditions = " OR ".join([f"champion_name_kr = ?" for _ in most_pick_champions])
@@ -121,6 +127,12 @@ def draw_random_skin(user_id, box_type=None, line_type=None, is_most_pick=False,
                 query += f" AND (({kr_conditions}) OR ({en_conditions}))"
                 params.extend(most_pick_champions)
                 params.extend(most_pick_champions)  # 한국어, 영어 둘 다
+                # 모스트 픽은 고급 뽑기 자동 적용: common과 rare 제외
+                query += " AND rarity NOT IN (?, ?)"
+                params.append('Common')
+                params.append('Rare')
+                # 고급 뽑기 가중치 사용
+                CURRENT_WEIGHTS = PREMIUM_GACHA_WEIGHTS
         except ImportError as e:
             print(f"모스트 픽 관련 함수 import 실패: {e}")
             return None

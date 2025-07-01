@@ -25,7 +25,7 @@ BOX_INFO = {
     "theme": {
         "title": "테마 상자",
         "description": "**특정 테마의 스킨**만 나오는 상자입니다.\n별 수호자, 프로젝트, K/DA 등 다양한 테마를 선택할 수 있습니다.",
-        "price": 3000,
+        "price": 1500,
         "color": 0xed4245
     },
     "most_pick": {
@@ -186,34 +186,34 @@ class ConfirmGachaView(discord.ui.View):
         if current_coin is None:
             current_coin = 0
         
-        # 1번 뽑기 버튼
-        draw_1_button = discord.ui.Button(
-            label=f'1번 뽑기 ({self.price:,}LC)',
-            style=discord.ButtonStyle.green,
-            emoji='🎰'
-        )
-        draw_1_button.callback = lambda interaction: self.confirm_gacha(interaction, 1)
-        self.add_item(draw_1_button)
-        
-        # 5번 뽑기 버튼 (5% 할인)
-        price_5 = int(self.price * 5 * 0.95)  # 5% 할인
-        draw_5_button = discord.ui.Button(
-            label=f'5번 뽑기 ({price_5:,}LC)',
-            style=discord.ButtonStyle.blurple,
-            emoji='🎰'
-        )
-        draw_5_button.callback = lambda interaction: self.confirm_gacha(interaction, 5)
-        self.add_item(draw_5_button)
-        
-        # 10번 뽑기 버튼 (10% 할인)
-        price_10 = int(self.price * 10 * 0.9)  # 10% 할인
+        # 10번 뽑기 버튼
         draw_10_button = discord.ui.Button(
-            label=f'10번 뽑기 ({price_10:,}LC)',
-            style=discord.ButtonStyle.red,
+            label=f'10번 뽑기 ({self.price * 10:,}LC)',
+            style=discord.ButtonStyle.green,
             emoji='🎰'
         )
         draw_10_button.callback = lambda interaction: self.confirm_gacha(interaction, 10)
         self.add_item(draw_10_button)
+        
+        # 50번 뽑기 버튼 (10% 할인)
+        price_50 = int(self.price * 50 * 0.9)  # 10% 할인
+        draw_50_button = discord.ui.Button(
+            label=f'50번 뽑기 ({price_50:,}LC)',
+            style=discord.ButtonStyle.blurple,
+            emoji='🎰'
+        )
+        draw_50_button.callback = lambda interaction: self.confirm_gacha(interaction, 50)
+        self.add_item(draw_50_button)
+        
+        # 100번 뽑기 버튼 (20% 할인)
+        price_100 = int(self.price * 100 * 0.8)  # 20% 할인
+        draw_100_button = discord.ui.Button(
+            label=f'100번 뽑기 ({price_100:,}LC)',
+            style=discord.ButtonStyle.red,
+            emoji='🎰'
+        )
+        draw_100_button.callback = lambda interaction: self.confirm_gacha(interaction, 100)
+        self.add_item(draw_100_button)
         
         # 현재 보유 코인 표시 (비활성 버튼)
         coin_info_button = discord.ui.Button(
@@ -235,12 +235,12 @@ class ConfirmGachaView(discord.ui.View):
     
     def calculate_price(self, count):
         """뽑기 횟수에 따른 가격 계산 (할인 포함)"""
-        if count == 1:
+        if count == 10:
             return self.price
-        elif count == 5:
-            return int(self.price * 5 * 0.95)  # 5% 할인
-        elif count == 10:
-            return int(self.price * 10 * 0.9)   # 10% 할인
+        elif count == 50:
+            return int(self.price * 50 * 0.9)  # 10% 할인
+        elif count == 100:
+            return int(self.price * 100 * 0.8)   # 20% 할인
         else:
             return self.price * count
     
@@ -334,187 +334,113 @@ class ConfirmGachaView(discord.ui.View):
                 await interaction.followup.edit_message(interaction.message.id, embed=embed, view=None)
                 return
         
-        # 결과 표시
-        if results:
-            # 다중 뽑기 결과 임베드 생성
-            if count == 1:
-                # 1번 뽑기는 기존 방식 유지
-                result = results[0]
+            # 결과 표시
+            
+            # 등급 우선순위 정의 (높을수록 좋은 등급)
+            rarity_priority = {
+                'common': 0,
+                'rare': 1,
+                'epic': 2,
+                'legendary': 3,
+                'mythic': 4,
+                'ultimate': 5,
+                'exalted': 6,
+                'transcendent': 7,
+                'immortal': 8
+            }
+            
+            # 가장 높은 등급의 스킨 찾기
+            best_skin = max(results, key=lambda x: rarity_priority.get(x.get('rarity', 'rare'), 0))
+            best_rarity = best_skin.get('rarity', 'rare')
+            best_rarity_kr = get_korean_rarity(best_rarity)  # 한글 등급명
+            embed_color = RARITY_COLORS.get(best_rarity, 0x00ff00)
+            
+            embed = discord.Embed(
+                title=f"🎉 {count}번 뽑기 결과!",
+                description=f"🌟 **최고 등급**: {best_skin['skin_name_kr']} ({best_skin['champion_name_kr']}) - **{best_rarity_kr}**",
+                color=embed_color
+            )
+            
+            from functions import get_nickname
+            embed.set_author(
+                name=f"{get_nickname(interaction.user)}",
+                icon_url=interaction.user.display_avatar.url
+            )
+            
+            # 가장 높은 등급 스킨의 이미지 추가
+            file_name = best_skin.get('file_name')
+            champion_name = file_name.split('_')[0] if file_name else None
+            file = None
+            
+            if file_name and champion_name:
+                image_path = get_skin_image_url(champion_name, file_name)
+                if image_path:
+                    try:
+                        file = discord.File(image_path, filename=f"{file_name}.jpg")
+                        embed.set_image(url=f"attachment://{file_name}.jpg")
+                    except FileNotFoundError:
+                        file = None
+            
+            # 등급별 카운트
+            rarity_count = {}
+            for result in results:
                 rarity = result.get('rarity', 'Rare')
-                rarity_kor = get_korean_rarity(rarity)
-                embed_color = RARITY_COLORS.get(rarity, 0xffd700)
+                rarity_count[rarity] = rarity_count.get(rarity, 0) + 1
+            
+            # 결과 요약 (등급 순서대로 정렬)
+            result_text = ""
+            sorted_rarities = sorted(rarity_count.items(), 
+                key=lambda x: rarity_priority.get(x[0], 0), reverse=True)
+            
+            for rarity, count_r in sorted_rarities:
+                # 커스텀 이모지 사용
+                rarity_emoji = get_rarity_emoji(rarity)
+                rarity_kr = get_korean_rarity(rarity)  # 한글 등급명
+                result_text += f"{rarity_emoji} **{rarity_kr}**: {count_r}개\n"
+            
+            embed.add_field(name="📊 등급별 결과", value=result_text, inline=True)
+            embed.add_field(name="💰 사용한 LC", value=f"{actual_price:,} LC", inline=True)
+            embed.add_field(name="💰 잔여 LC", value=f"{new_coin_amount:,} LC", inline=True)
+            
+            # 획득한 스킨 목록 (등급 순으로 정렬)
+            sorted_results = sorted(results, 
+                key=lambda x: rarity_priority.get(x.get('rarity', 'rare'), 0), reverse=True)
+            
+            skin_list = ""
+            for i, result in enumerate(sorted_results):
+                rarity = result.get('rarity', 'rare')
+                rarity_emoji = get_rarity_emoji(rarity)  # 커스텀 이모지 사용
                 
-                embed = discord.Embed(
-                    title=f"{result['skin_name_kr']} 획득!",
-                    description=f"**{result['skin_name_kr']}**\n({result['champion_name_kr']})",
-                    color=embed_color
-                )
-                
-                from functions import get_nickname
-                embed.set_author(
-                    name=f"{get_nickname(interaction.user)}",
-                    icon_url=interaction.user.display_avatar.url
-                )
-                
-                # 스킨 이미지 추가
-                file_name = result.get('file_name')
-                champion_name = file_name.split('_')[0] if file_name else None
-                file = None
-                
-                if file_name and champion_name:
-                    image_path = get_skin_image_url(champion_name, file_name)
-                    if image_path:
-                        try:
-                            file = discord.File(image_path, filename=f"{file_name}.jpg")
-                            embed.set_image(url=f"attachment://{file_name}.jpg")
-                        except FileNotFoundError:
-                            file = None
-                
-                embed.add_field(name="등급", value=rarity_kor, inline=True)
-                embed.add_field(name="사용한 LC", value=f"{actual_price:,} LC", inline=True)
-                embed.add_field(name="잔여 LC", value=f"{new_coin_amount:,} LC", inline=True)
-                
-                # 특별한 등급 표시
-                if rarity == "ultimate":
-                    embed.add_field(name="✨", value="**초월급 스킨!**", inline=True)
-                elif rarity == "exalted":
-                    embed.add_field(name="🌟", value="**고귀급 스킨!**", inline=True)
-                elif rarity == "transcendent":
-                    embed.add_field(name="🌟", value="**초월 스킨!**", inline=True)
-                elif rarity == "immortal":
-                    embed.add_field(name="🌟", value="**불멸 스킨!**", inline=True)
-                
-                # 결과 전송
-                if file:
-                    await interaction.channel.send(embed=embed, file=file)
+                # 가장 좋은 스킨은 특별 표시
+                if result == best_skin:
+                    skin_list += f"👑 **{result['skin_name_kr']}** ({result['champion_name_kr']}) {rarity_emoji}\n"
                 else:
-                    await interaction.channel.send(embed=embed)
-                
-                # 대표 스킨 설정 옵션
-                rep_embed = discord.Embed(
-                    title="👑 대표 스킨 설정",
-                    description=f"**{result['skin_name_kr']}**을(를) **{result['champion_name_kr']}**의 대표 스킨으로 설정하시겠습니까?",
-                    color=0xFFD700
-                )
-                
-                rep_view = RepresentativeSkinChoiceView(
-                    user_id=self.user_id,
-                    champion_name_kr=result.get('champion_name_kr'),
-                    champion_name_en=result.get('champion_name_en'),
-                    skin_id=result.get('skin_id'),
-                    skin_name=result.get('skin_name_kr')
-                )
-                
-                await interaction.followup.send(embed=rep_embed, view=rep_view, ephemeral=True)
-                
+                    skin_list += f"{i+1}. **{result['skin_name_kr']}** ({result['champion_name_kr']}) {rarity_emoji}\n"
+            
+            # 너무 길면 일부만 표시
+            if len(skin_list) > 1000:  # Discord 필드 길이 제한
+                lines = skin_list.split('\n')
+                truncated_lines = lines[:15]  # 처음 15개만
+                skin_list = '\n'.join(truncated_lines)
+                if len(results) > 15:
+                    skin_list += f"\n... 외 {len(results) - 15}개"
+            
+            embed.add_field(name="🎁 획득한 스킨", value=skin_list, inline=False)
+            
+            # 결과 전송 (최고 등급 스킨 이미지와 함께)
+            if file:
+                await interaction.channel.send(embed=embed, file=file)
             else:
-                # 다중 뽑기 결과 표시
-                
-                # 등급 우선순위 정의 (높을수록 좋은 등급)
-                rarity_priority = {
-                    'common': 0,
-                    'rare': 1,
-                    'epic': 2,
-                    'legendary': 3,
-                    'mythic': 4,
-                    'ultimate': 5,
-                    'exalted': 6,
-                    'transcendent': 7,
-                    'immortal': 8
-                }
-                
-                # 가장 높은 등급의 스킨 찾기
-                best_skin = max(results, key=lambda x: rarity_priority.get(x.get('rarity', 'Rare'), 0))
-                best_rarity = best_skin.get('rarity', 'Rare')
-                best_rarity_kr = get_korean_rarity(best_rarity)  # 한글 등급명
-                embed_color = RARITY_COLORS.get(best_rarity, 0x00ff00)
-                
-                embed = discord.Embed(
-                    title=f"🎉 {count}번 뽑기 결과!",
-                    description=f"**{successful_draws}/{count}**번 성공!\n\n🌟 **최고 등급**: {best_skin['skin_name_kr']} ({best_skin['champion_name_kr']}) - **{best_rarity_kr}**",
-                    color=embed_color
-                )
-                
-                from functions import get_nickname
-                embed.set_author(
-                    name=f"{get_nickname(interaction.user)}",
-                    icon_url=interaction.user.display_avatar.url
-                )
-                
-                # 가장 높은 등급 스킨의 이미지 추가
-                file_name = best_skin.get('file_name')
-                champion_name = file_name.split('_')[0] if file_name else None
-                file = None
-                
-                if file_name and champion_name:
-                    image_path = get_skin_image_url(champion_name, file_name)
-                    if image_path:
-                        try:
-                            file = discord.File(image_path, filename=f"{file_name}.jpg")
-                            embed.set_image(url=f"attachment://{file_name}.jpg")
-                        except FileNotFoundError:
-                            file = None
-                
-                # 등급별 카운트
-                rarity_count = {}
-                for result in results:
-                    rarity = result.get('rarity', 'Rare')
-                    rarity_count[rarity] = rarity_count.get(rarity, 0) + 1
-                
-                # 결과 요약 (등급 순서대로 정렬)
-                result_text = ""
-                sorted_rarities = sorted(rarity_count.items(), 
-                    key=lambda x: rarity_priority.get(x[0], 0), reverse=True)
-                
-                for rarity, count_r in sorted_rarities:
-                    # 커스텀 이모지 사용
-                    rarity_emoji = get_rarity_emoji(rarity)
-                    rarity_kr = get_korean_rarity(rarity)  # 한글 등급명
-                    result_text += f"{rarity_emoji} **{rarity_kr}**: {count_r}개\n"
-                
-                embed.add_field(name="📊 등급별 결과", value=result_text, inline=True)
-                embed.add_field(name="💰 사용한 LC", value=f"{actual_price:,} LC", inline=True)
-                embed.add_field(name="💰 잔여 LC", value=f"{new_coin_amount:,} LC", inline=True)
-                
-                # 획득한 스킨 목록 (등급 순으로 정렬)
-                sorted_results = sorted(results, 
-                    key=lambda x: rarity_priority.get(x.get('rarity', 'Rare'), 0), reverse=True)
-                
-                skin_list = ""
-                for i, result in enumerate(sorted_results):
-                    rarity = result.get('rarity', 'Rare')
-                    rarity_emoji = get_rarity_emoji(rarity)  # 커스텀 이모지 사용
-                    
-                    # 가장 좋은 스킨은 특별 표시
-                    if result == best_skin:
-                        skin_list += f"👑 **{result['skin_name_kr']}** ({result['champion_name_kr']}) {rarity_emoji}\n"
-                    else:
-                        skin_list += f"{i+1}. **{result['skin_name_kr']}** ({result['champion_name_kr']}) {rarity_emoji}\n"
-                
-                # 너무 길면 일부만 표시
-                if len(skin_list) > 1000:  # Discord 필드 길이 제한
-                    lines = skin_list.split('\n')
-                    truncated_lines = lines[:15]  # 처음 15개만
-                    skin_list = '\n'.join(truncated_lines)
-                    if len(results) > 15:
-                        skin_list += f"\n... 외 {len(results) - 15}개"
-                
-                embed.add_field(name="🎁 획득한 스킨", value=skin_list, inline=False)
-                
-                # 결과 전송 (최고 등급 스킨 이미지와 함께)
-                if file:
-                    await interaction.channel.send(embed=embed, file=file)
-                else:
-                    await interaction.channel.send(embed=embed)
-                
-                # 다중 뽑기에서는 대표 스킨 설정을 생략하고 안내 메시지만 전송
-                info_embed = discord.Embed(
-                    title="ℹ️ 대표 스킨 설정 안내",
-                    description="다중 뽑기에서는 대표 스킨 자동 설정이 제공되지 않습니다.\n`/대표스킨` 명령어를 사용해서 원하는 스킨을 설정해주세요.",
-                    color=0x3498db
-                )
-                
-                await interaction.followup.send(embed=info_embed, ephemeral=True)
+                await interaction.channel.send(embed=embed)
+            
+            # 다중 뽑기에서는 대표 스킨 설정을 생략하고 안내 메시지만 전송
+            info_embed = discord.Embed(
+                title="ℹ️ 대표 스킨 설정 방법",
+                description="`/대표스킨` 명령어를 사용해서 원하는 스킨을 설정할 수 있습니다.",
+                color=0x3498db
+            )
+            
+            await interaction.followup.send(embed=info_embed, ephemeral=True)
                 
         else:
             # 모든 뽑기 실패
@@ -525,73 +451,10 @@ class ConfirmGachaView(discord.ui.View):
             )
             embed.add_field(name="현재 LC", value=f"{current_coin:,} LC", inline=True)
             
-            await interaction.followup.edit_message(interaction.message.id, embed=embed, view=None)
-
-class RepresentativeSkinChoiceView(discord.ui.View):
-    def __init__(self, user_id, champion_name_kr, champion_name_en, skin_id, skin_name):
-        super().__init__(timeout=120.0)  # 2분 타임아웃
-        self.user_id = user_id
-        self.champion_name_kr = champion_name_kr
-        self.champion_name_en = champion_name_en
-        self.skin_id = skin_id
-        self.skin_name = skin_name
-    
-    @discord.ui.button(label='대표 스킨으로 설정', style=discord.ButtonStyle.green, emoji='👑')
-    async def set_representative(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # 뽑은 사람만 버튼 사용 가능
-        if str(interaction.user.id) != self.user_id:
-            await interaction.response.send_message("❌ 본인만 설정할 수 있습니다.", ephemeral=True)
-            return
-        
-        from lolpark_land.representative_skin import set_representative_skin
-        
-        # 대표 스킨 설정
-        success = set_representative_skin(self.user_id, self.champion_name_kr, self.champion_name_en, self.skin_id)
-        
-        if success:
-            embed = discord.Embed(
-                title="✅ 대표 스킨 설정 완료",
-                description=f"**{self.skin_name}**이(가) **{self.champion_name_kr}**의 대표 스킨으로 설정되었습니다!",
-                color=0x00FF00
-            )
-        else:
-            embed = discord.Embed(
-                title="❌ 설정 실패",
-                description="대표 스킨 설정에 실패했습니다. 다시 시도해주세요.",
-                color=0xFF0000
-            )
-        
-        await interaction.response.edit_message(embed=embed, view=None)
-    
-    @discord.ui.button(label='나중에 설정', style=discord.ButtonStyle.gray, emoji='⏰')
-    async def skip_setting(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # 뽑은 사람만 버튼 사용 가능
-        if str(interaction.user.id) != self.user_id:
-            await interaction.response.send_message("❌ 본인만 선택할 수 있습니다.", ephemeral=True)
-            return
-        
-        embed = discord.Embed(
-            title="⏰ 대표 스킨 설정 건너뜀",
-            description=f"**{self.skin_name}**의 대표 스킨 설정을 건너뛰었습니다.\n나중에 `/대표스킨` 명령어로 설정할 수 있습니다.",
-            color=0x808080
-        )
-        
-        await interaction.response.edit_message(embed=embed, view=None)
-    
-    async def on_timeout(self):
-        """
-        타임아웃 시 메시지 수정
-        """
-        embed = discord.Embed(
-            title="⏰ 시간 초과",
-            description="대표 스킨 설정 시간이 초과되었습니다.\n`/대표스킨` 명령어로 나중에 설정할 수 있습니다.",
-            color=0x808080
-        )
-        # 메시지 수정 시도 (이미 수정되었을 수도 있음)
-        try:
-            await self.message.edit(embed=embed, view=None)
-        except:
-            pass
+            try:
+                await interaction.followup.edit_message(interaction.message.id, embed=embed, view=None)
+            except:
+                pass
 
 class LineButtonView(discord.ui.View):
     def __init__(self, user_id):
