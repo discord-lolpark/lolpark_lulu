@@ -23,7 +23,7 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
     # 참여자들의 닉네임 가져오기
     participant_names = []
     for participant in participants:
-        nickname = await get_nickname(participant)
+        nickname = get_nickname(participant)
         participant_names.append(nickname)
     
     # 참여자 목록 텍스트 생성
@@ -52,7 +52,7 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
             image_path = f"/lolpark_assets/splash/{champion_name_en}/{file_name}.jpg"
             
             # 현재 스코어 텍스트 생성
-            score_text = "\n".join([f"• {await get_nickname(participant)}: {score}점" 
+            score_text = "\n".join([f"• {get_nickname(participant)}: {score}점" 
                                    for participant, score in scores.items()])
             
             # 문제 Embed 생성
@@ -128,14 +128,14 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
                     
                     # 정답자 텍스트 생성
                     if correct_users:
-                        correct_names = [await get_nickname(user) for user in correct_users]
+                        correct_names = [get_nickname(user) for user in correct_users]
                         correct_text = ", ".join(correct_names)
                         result_text = f"**정답자:** {correct_text}"
                     else:
                         result_text = "**정답자:** 없음"
                     
                     # 업데이트된 스코어 텍스트
-                    updated_score_text = "\n".join([f"• {await get_nickname(participant)}: {score}점" 
+                    updated_score_text = "\n".join([f"• {get_nickname(participant)}: {score}점" 
                                                    for participant, score in scores.items()])
                     
                     # 정답 공개 Embed
@@ -185,7 +185,7 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
         
         final_text = ""
         for i, (participant, score) in enumerate(final_scores, 1):
-            nickname = await get_nickname(participant)
+            nickname = (participant)
             if i == 1:
                 final_text += f"🥇 **{nickname}**: {score}점\n"
             elif i == 2:
@@ -224,7 +224,7 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
             
             # 준비 완료 처리
             self.ready_users.add(interaction.user)
-            ready_nickname = await get_nickname(interaction.user)
+            ready_nickname = get_nickname(interaction.user)
             
             # 모든 참여자가 준비 완료했는지 확인
             if len(self.ready_users) == len(self.participants):
@@ -241,7 +241,7 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
                 not_ready = []
                 for participant in self.participants:
                     if participant not in self.ready_users:
-                        not_ready_nickname = await get_nickname(participant)
+                        not_ready_nickname = get_nickname(participant)
                         not_ready.append(not_ready_nickname)
                 
                 not_ready_text = ", ".join(not_ready)
@@ -264,7 +264,7 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
             # 준비한 사람들만으로 진행
             ready_names = []
             for user in self.ready_users:
-                nickname = await get_nickname(user)
+                nickname = get_nickname(user)
                 ready_names.append(nickname)
             
             ready_text = ", ".join(ready_names)
