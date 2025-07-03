@@ -239,6 +239,7 @@ async def owned_skins_command(interaction: discord.Interaction, 챔피언이름:
 
 
 @bot.tree.command(name="미니게임", description="미니게임을 진행합니다.")
+@commands.is_owner()
 async def mini_game_command(interaction: discord.Interaction):
 
     from lolpark_land.mini_games import run_skin_battle
@@ -249,11 +250,10 @@ async def mini_game_command(interaction: discord.Interaction):
 
     participants = []
     participants.append(user)
-    participants.append(meolba)
 
+    await interaction.response.defer()
     await run_skin_battle(participants, channel)
 
-    return
 
 
 @bot.tree.command(name="도박", description="포인트를 걸고 도박을 진행합니다.")

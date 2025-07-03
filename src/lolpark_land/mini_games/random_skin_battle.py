@@ -128,6 +128,12 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
                         self.processed = True
                         self.quiz_active = False
                         
+                        # 챔피언 힌트 이미지 메시지 삭제
+                        try:
+                            await image_message.delete()
+                        except:
+                            pass  # 이미 삭제되었거나 권한이 없는 경우
+                        
                         # 정답 확인 및 점수 업데이트
                         correct_users = []
                         for user, answer in self.submitted_answers.items():
@@ -158,17 +164,31 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
                         updated_score_text = "\n".join([f"• {get_nickname(participant)}: {score}점" 
                                                        for participant, score in scores.items()])
                         
-                        # 정답 공개를 정보 메시지에 표시
-                        result_embed = discord.Embed(
-                            title="🎉 정답 공개!",
-                            description=f"**정답:** {self.correct_answer}\n\n**플레이어별 답안:**\n{answer_status_text}\n\n**현재 스코어:**\n{updated_score_text}",
-                            color=0xff9900
-                        )
+                        # 정답 공개를 정보 메시지에 표시 (이미지 포함)
+                        if question_num < 10:
+                            # 마지막 문제가 아닌 경우
+                            result_embed = discord.Embed(
+                                title="🎉 정답 공개!",
+                                description=f"**정답:** {self.correct_answer}\n\n**플레이어별 답안:**\n{answer_status_text}\n\n**현재 스코어:**\n{updated_score_text}\n\n⏰ **10초 후 다음 문제로 넘어갑니다.**",
+                                color=0xff9900
+                            )
+                        else:
+                            # 마지막 문제인 경우
+                            result_embed = discord.Embed(
+                                title="🎉 정답 공개!",
+                                description=f"**정답:** {self.correct_answer}\n\n**플레이어별 답안:**\n{answer_status_text}\n\n**현재 스코어:**\n{updated_score_text}\n\n⏰ **10초 후 최종 결과를 공개합니다.**",
+                                color=0xff9900
+                            )
                         
                         try:
-                            await self.message.edit(embed=result_embed, view=None)
+                            # 정답 이미지를 새로 첨부
+                            file = File(image_path, filename="answer_skin.jpg")
+                            result_embed.set_image(url="attachment://answer_skin.jpg")
+                            await self.message.edit(embed=result_embed, view=None, attachments=[file])
                         except Exception as e:
-                            print(f"메시지 수정 중 오류: {e}")
+                            # 이미지 첨부 실패 시 텍스트만 표시
+                            await self.message.edit(embed=result_embed, view=None)
+                            print(f"정답 이미지 첨부 중 오류: {e}")
             
             # 현재 스코어 정보 메시지 전송 (업데이트용)
             score_text = "\n".join([f"• {get_nickname(participant)}: {score}점" 
@@ -214,8 +234,8 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
             if not view.processed:
                 await view.process_answers()
             
-            # 결과 확인 시간 (5초)
-            await asyncio.sleep(5)
+            # 결과 확인 시간 (10초)
+            await asyncio.sleep(10)
             
             # 마지막 문제가 아니면 다음 문제 준비 메시지 표시
             if question_num < 10:
