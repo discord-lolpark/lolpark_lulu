@@ -51,35 +51,31 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
             # 이미지 파일 경로
             image_path = f"/lolpark_assets/splash/{champion_name_en}/{file_name}.jpg"
             
-            # 현재 스코어 텍스트 생성
-            score_text = "\n".join([f"• {get_nickname(participant)}: {score}점" 
-                                   for participant, score in scores.items()])
-            
-            # 문제 Embed 생성
+            # 문제 Embed와 이미지를 먼저 전송 (한 번만, 깜빡임 방지)
             quiz_embed = discord.Embed(
                 title=f"🎮 스킨 배틀 - {question_num}/10",
-                description=f"# 챔피언 힌트 : {champion_name_kr}\n\n**현재 스코어:**\n{score_text}",
+                description=f"# 챔피언 힌트 : {champion_name_kr}",
                 color=0x00ff00
             )
             
-            # 이미지 첨부
+            # 이미지 메시지 전송
             try:
                 file = File(image_path, filename="skin.jpg")
                 quiz_embed.set_image(url="attachment://skin.jpg")
+                image_message = await ctx.send(embed=quiz_embed, file=file)
             except:
-                quiz_embed.add_field(name="❌ 오류", value="이미지를 불러올 수 없습니다.", inline=False)
+                image_message = await ctx.send(embed=quiz_embed)
             
             # 정답 작성 버튼 뷰
             class AnswerView(discord.ui.View):
                 def __init__(self, participants: list[discord.Member], correct_answer: str):
-                    super().__init__(timeout=15)  # 15초 제한
+                    super().__init__(timeout=None)  # View 자체 timeout 완전히 비활성화
                     self.participants = participants
                     self.correct_answer = correct_answer
                     self.submitted_answers = {}  # {user: answer}
                     self.quiz_active = True
                     self.processed = False  # 중복 처리 방지
-                    self.timeout_event = asyncio.Event()  # 타임아웃 이벤트
-                    self.time_left = 15  # 남은 시간
+                    self.processing_lock = asyncio.Lock()  # 중복 처리 방지용 락
                     
                 @discord.ui.button(label='정답 작성', style=discord.ButtonStyle.primary, emoji='✏️')
                 async def answer_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -115,119 +111,125 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
                                 
                             self.view_ref.submitted_answers[interaction.user] = self.answer_input.value
                             await interaction.response.send_message("답안이 제출되었습니다!", ephemeral=True)
+                            
+                            # 모든 참여자가 답안을 제출했는지 확인
+                            if len(self.view_ref.submitted_answers) == len(self.view_ref.participants):
+                                # 모든 참여자가 제출 완료 -> 즉시 정답 처리
+                                await self.view_ref.process_answers()
                     
                     modal = AnswerModal(self)
                     await interaction.response.send_modal(modal)
                 
                 async def process_answers(self):
-                    """정답 처리 함수 - 중복 실행 방지"""
-                    if self.processed:
-                        return
-                    self.processed = True
-                    self.quiz_active = False
-                    
-                    # 정답 확인
-                    correct_users = []
-                    for user, answer in self.submitted_answers.items():
-                        if answer == self.correct_answer:
-                            correct_users.append(user)
-                            scores[user] += 1
-                    
-                    # 정답자 텍스트 생성
-                    if correct_users:
-                        correct_names = [get_nickname(user) for user in correct_users]
-                        correct_text = ", ".join(correct_names)
-                        result_text = f"**정답자:** {correct_text}"
-                    else:
-                        result_text = "**정답자:** 없음"
-                    
-                    # 업데이트된 스코어 텍스트
-                    updated_score_text = "\n".join([f"• {get_nickname(participant)}: {score}점" 
-                                                   for participant, score in scores.items()])
-                    
-                    # 정답 공개 Embed
-                    result_embed = discord.Embed(
-                        title=f"🎮 스킨 배틀 - {question_num}/10 (정답 공개)",
-                        description=f"**정답:** # {skin_name_kr}\n\n{result_text}\n\n**현재 스코어:**\n{updated_score_text}",
-                        color=0xff9900
-                    )
-                    
-                    try:
-                        file = File(image_path, filename="skin.jpg")
-                        result_embed.set_image(url="attachment://skin.jpg")
-                        await self.message.edit(embed=result_embed, view=None, attachments=[file])
-                    except:
-                        await self.message.edit(embed=result_embed, view=None)
-                
-                async def update_timer(self):
-                    """타이머 업데이트 함수"""
-                    while self.time_left > 0 and self.quiz_active:
-                        # 현재 스코어 텍스트 생성
-                        score_text = "\n".join([f"• {get_nickname(participant)}: {score}점" 
-                                               for participant, score in scores.items()])
+                    """정답 처리 함수 - 락으로 중복 실행 방지"""
+                    async with self.processing_lock:  # 락으로 중복 처리 방지
+                        if self.processed:
+                            return
+                        self.processed = True
+                        self.quiz_active = False
                         
-                        # Embed 업데이트
-                        updated_embed = discord.Embed(
-                            title=f"🎮 스킨 배틀 - {question_num}/10",
-                            description=f"# 챔피언 힌트 : {champion_name_kr}\n\n**현재 스코어:**\n{score_text}",
-                            color=0x00ff00
+                        # 정답 확인 및 점수 업데이트
+                        correct_users = []
+                        for user, answer in self.submitted_answers.items():
+                            if answer == self.correct_answer:
+                                correct_users.append(user)
+                                scores[user] += 1
+                        
+                        # 각 플레이어의 답안 상태 생성
+                        answer_status_lines = []
+                        for participant in self.participants:
+                            nickname = get_nickname(participant)
+                            
+                            if participant in self.submitted_answers:
+                                user_answer = self.submitted_answers[participant]
+                                if user_answer == self.correct_answer:
+                                    # 정답인 경우
+                                    answer_status_lines.append(f"⭕ **{nickname}**: `{user_answer}` ✨")
+                                else:
+                                    # 오답인 경우
+                                    answer_status_lines.append(f"❌ **{nickname}**: `{user_answer}`")
+                            else:
+                                # 답안 제출 안한 경우
+                                answer_status_lines.append(f"⏰ **{nickname}**: `미제출`")
+                        
+                        answer_status_text = "\n".join(answer_status_lines)
+                        
+                        # 업데이트된 스코어 텍스트
+                        updated_score_text = "\n".join([f"• {get_nickname(participant)}: {score}점" 
+                                                       for participant, score in scores.items()])
+                        
+                        # 정답 공개를 정보 메시지에 표시
+                        result_embed = discord.Embed(
+                            title="🎉 정답 공개!",
+                            description=f"**정답:** {self.correct_answer}\n\n**플레이어별 답안:**\n{answer_status_text}\n\n**현재 스코어:**\n{updated_score_text}",
+                            color=0xff9900
                         )
-                        updated_embed.set_footer(text=f"⏰ {self.time_left}초 남았습니다...")
                         
-                        # 이미지 첨부
                         try:
-                            file = File(image_path, filename="skin.jpg")
-                            updated_embed.set_image(url="attachment://skin.jpg")
-                            await self.message.edit(embed=updated_embed, view=self, attachments=[file])
-                        except:
-                            await self.message.edit(embed=updated_embed, view=self)
-                        
-                        await asyncio.sleep(1)
-                        self.time_left -= 1
-                
-                async def on_timeout(self):
-                    await self.process_answers()
-                    self.timeout_event.set()  # 타임아웃 발생 신호
+                            await self.message.edit(embed=result_embed, view=None)
+                        except Exception as e:
+                            print(f"메시지 수정 중 오류: {e}")
             
-            # 메시지 전송
+            # 현재 스코어 정보 메시지 전송 (업데이트용)
+            score_text = "\n".join([f"• {get_nickname(participant)}: {score}점" 
+                                   for participant, score in scores.items()])
+            
+            info_embed = discord.Embed(
+                title="📊 현재 상황",
+                description=f"**현재 스코어:**\n{score_text}",
+                color=0x0099ff
+            )
+            info_embed.set_footer(text="⏰ 15초 남았습니다...")
+            
+            # 버튼이 있는 정보 메시지 전송
             view = AnswerView(ready_participants, skin_name_kr)
-            try:
-                message = await ctx.send(embed=quiz_embed, view=view, file=file)
-            except:
-                message = await ctx.send(embed=quiz_embed, view=view)
+            info_message = await ctx.send(embed=info_embed, view=view)
+            view.message = info_message
             
-            view.message = message
+            # 타이머 실행 (15초 동안 1초마다 업데이트)
+            for remaining in range(15, 0, -1):
+                # 이미 처리가 완료되었다면 타이머 중단
+                if view.processed:
+                    break
+                    
+                # 스코어 업데이트
+                current_score_text = "\n".join([f"• {get_nickname(participant)}: {score}점" 
+                                               for participant, score in scores.items()])
+                
+                updated_info_embed = discord.Embed(
+                    title="📊 현재 상황",
+                    description=f"**현재 스코어:**\n{current_score_text}",
+                    color=0x0099ff
+                )
+                updated_info_embed.set_footer(text=f"⏰ {remaining}초 남았습니다...")
+                
+                try:
+                    await info_message.edit(embed=updated_info_embed, view=view)
+                except:
+                    pass  # 메시지가 이미 수정되었거나 삭제된 경우
+                
+                await asyncio.sleep(1)
             
-            # 타이머 시작
-            timer_task = asyncio.create_task(view.update_timer())
-            
-            # 타임아웃 또는 15초 대기 (둘 중 먼저 발생하는 것)
-            try:
-                await asyncio.wait_for(view.timeout_event.wait(), timeout=15)
-            except asyncio.TimeoutError:
-                # 15초가 지났지만 타임아웃이 발생하지 않은 경우 (모든 사람이 답안 제출)
+            # 15초 후 정답 처리 (아직 처리되지 않았다면)
+            if not view.processed:
                 await view.process_answers()
             
-            # 타이머 태스크 종료
-            timer_task.cancel()
-            try:
-                await timer_task
-            except asyncio.CancelledError:
-                pass
+            # 결과 확인 시간 (5초)
+            await asyncio.sleep(5)
             
             # 마지막 문제가 아니면 다음 문제 준비 메시지 표시
             if question_num < 10:
                 next_embed = discord.Embed(
                     title="⏭️ 다음 문제 준비 중...",
-                    description="5초 후 다음 문제로 넘어갑니다!",
+                    description="3초 후 다음 문제로 넘어갑니다!",
                     color=0x0099ff
                 )
-                await message.edit(embed=next_embed, attachments=[])
-                await asyncio.sleep(5)  # 5초 대기 후 다음 문제로
+                await info_message.edit(embed=next_embed, view=None)
+                await asyncio.sleep(3)  # 3초 대기 후 다음 문제로
                 
                 # 준비 메시지 삭제
                 try:
-                    await message.delete()
+                    await info_message.delete()
                 except:
                     pass  # 이미 삭제되었거나 권한이 없는 경우 무시
         
