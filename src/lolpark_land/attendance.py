@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta, time
 import sqlite3
 import asyncio
 from functions import get_nickname, lol_champion_korean_dict
-from lolpark_land.land_config import ATTENDANCE_CHANNEL_ID
+from lolpark_land.land_config import ATTENDANCE_CHANNEL_ID, land_database_path
 import random
 import os
 
@@ -13,7 +13,7 @@ KST = timezone(timedelta(hours=9))
 
 class AttendanceSystem:
     def __init__(self):
-        self.db_path = "/database/lolpark_land.db"
+        self.db_path = land_database_path
         self._lock = asyncio.Lock()  # 동시성 제어를 위한 락
         self.init_attendance_table()
     
