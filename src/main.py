@@ -244,10 +244,12 @@ async def mini_game_command(interaction: discord.Interaction):
     from lolpark_land.mini_games import run_skin_battle
 
     user = interaction.user
+    meolba = interaction.guild.get_member(1109093546117562421)
     channel = interaction.channel
 
     participants = []
     participants.append(user)
+    participants.append(meolba)
 
     await run_skin_battle(participants, channel)
 
