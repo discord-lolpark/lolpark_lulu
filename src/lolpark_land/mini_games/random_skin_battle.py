@@ -237,17 +237,8 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
             # 결과 확인 시간 (10초)
             await asyncio.sleep(10)
             
-            # 마지막 문제가 아니면 다음 문제 준비 메시지 표시
+            # 정답 공개 메시지 삭제 (마지막 문제가 아닌 경우만)
             if question_num < 10:
-                next_embed = discord.Embed(
-                    title="⏭️ 다음 문제 준비 중...",
-                    description="3초 후 다음 문제로 넘어갑니다!",
-                    color=0x0099ff
-                )
-                await info_message.edit(embed=next_embed, view=None)
-                await asyncio.sleep(3)  # 3초 대기 후 다음 문제로
-                
-                # 준비 메시지 삭제
                 try:
                     await info_message.delete()
                 except:
@@ -282,6 +273,7 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
             super().__init__(timeout=180)  # 3분 타임아웃
             self.participants = participants
             self.ready_users = set()  # 준비 완료한 사용자들
+            self.game_started = False  # 게임 시작 상태 추가
             
         @discord.ui.button(label='준비', style=discord.ButtonStyle.green, emoji='✅')
         async def ready_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -302,6 +294,7 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
             # 모든 참여자가 준비 완료했는지 확인
             if len(self.ready_users) == len(self.participants):
                 # 모든 참여자 준비 완료
+                self.game_started = True  # 게임 시작 상태 설정
                 await interaction.response.edit_message(
                     content="🎉 모든 참여자가 준비 완료! 스킨 배틀을 시작합니다!",
                     embed=None,
@@ -324,6 +317,10 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
                 )
         
         async def on_timeout(self):
+            # 이미 게임이 시작된 경우 타임아웃 처리하지 않음
+            if self.game_started:
+                return
+                
             # 타임아웃 시 처리
             if len(self.ready_users) == 0:
                 # 아무도 준비하지 않은 경우
@@ -335,6 +332,7 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
                 return
             
             # 준비한 사람들만으로 진행
+            self.game_started = True  # 게임 시작 상태 설정
             ready_names = []
             for user in self.ready_users:
                 nickname = get_nickname(user)
