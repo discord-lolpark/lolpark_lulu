@@ -1,5 +1,6 @@
 from lolpark_land.land_config import land_database_path
 import sqlite3
+import discord
 import traceback
 
 def execute_select_query(query: str, parameter: any = None):
@@ -67,3 +68,11 @@ def get_now_lolpark_coin(user_id):
     except Exception as e:
         print(f"[ERROR] get_now_lolpark_coin 오류: {e}")
         return 0
+    
+
+def add_coin_to_user(user: discord.Member, coin: int, is_premium=False):
+    query = "UPDATE users SET lolpark_coin = lolpark_coin + ? WHERE user_id = ?"
+
+    extra_coin = coin * 4 if is_premium else 0
+
+    return execute_post_query(query, (coin + extra_coin, user.id))

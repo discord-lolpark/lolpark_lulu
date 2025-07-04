@@ -2,7 +2,7 @@
 #####       랜덤 스킨 배틀 !          ######
 ##########################################
 
-from lolpark_land import execute_select_query
+from lolpark_land import execute_select_query, execute_post_query, add_coin_to_user, get_now_lolpark_coin
 from functions import get_nickname
 import discord
 import random
@@ -244,28 +244,94 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
                 except:
                     pass  # 이미 삭제되었거나 권한이 없는 경우 무시
         
-        # 최종 결과 발표
+        # 최종 결과 발표 (동점자 처리 버전)
         final_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        
+
+        # 점수별로 그룹화
+        from collections import defaultdict
+        score_groups = defaultdict(list)
+        for participant, score in final_scores:
+            score_groups[score].append(participant)
+
+        # 점수 순으로 정렬 (높은 점수부터)
+        sorted_scores = sorted(score_groups.keys(), reverse=True)
+
         final_text = ""
-        for i, (participant, score) in enumerate(final_scores, 1):
-            nickname = get_nickname(participant)
-            if i == 1:
-                final_text += f"🥇 **{nickname}**: {score}점\n"
-            elif i == 2:
-                final_text += f"🥈 **{nickname}**: {score}점\n"
-            elif i == 3:
-                final_text += f"🥉 **{nickname}**: {score}점\n"
-            else:
-                final_text += f"{i}등 **{nickname}**: {score}점\n"
-        
+        current_rank = 1
+        total_participants = len(final_scores)  # 전체 참여자 수
+
+        for score in sorted_scores:
+            participants = score_groups[score]
+            
+            # LC 보상 계산 (1~3등만)
+            lc_reward = 0
+            if current_rank == 1:
+                lc_reward = total_participants * 300
+            elif current_rank == 2:
+                lc_reward = total_participants * 200
+            elif current_rank == 3:
+                lc_reward = total_participants * 100
+            
+            # 각 참가자를 개별적으로 표시
+            for participant in participants:
+                nickname = get_nickname(participant)
+                
+                # 동점자 여부 확인
+                is_tie = len(participants) > 1
+                
+                # 등수 표시 텍스트
+                if is_tie:
+                    rank_text = f"공동 {current_rank}등"
+                else:
+                    rank_text = f"{current_rank}등"
+                
+                # LC 지급 (1~3등만)
+                if lc_reward > 0:
+                    add_coin_to_user(participant, lc_reward)
+                    current_lc = get_now_lolpark_coin(participant.id)
+                    reward_text = f", **{lc_reward:,}LC** 획득! 현재 LC: **{current_lc:,}LC**"
+                else:
+                    reward_text = ""
+                
+                # 메달과 함께 출력
+                if current_rank == 1:
+                    final_text += f"## 🥇 **{rank_text} {nickname}**: {score}점{reward_text}\n"
+                elif current_rank == 2:
+                    final_text += f"### 🥈 **{rank_text} {nickname}**: {score}점{reward_text}\n"
+                elif current_rank == 3:
+                    final_text += f"### 🥉 **{rank_text} {nickname}**: {score}점{reward_text}\n"
+                else:
+                    final_text += f"**{rank_text} {nickname}**: {score}점{reward_text}\n"
+            
+            # 다음 등수 업데이트 (동점자 수만큼 건너뛰기)
+            current_rank += len(participants)
+
         final_embed = discord.Embed(
             title="🎉 스킨 배틀 결과 발표!",
             description=final_text,
             color=0xffd700
         )
-        
+
+        # 보상 정보를 푸터에 추가
+        final_embed.set_footer(text=f"참여자 {total_participants}명 | 1등: {500 + total_participants * 300:,}LC | 2등: {300 + total_participants * 200:,}LC | 3등: {total_participants * 100:,}LC")
+
         await ctx.send(embed=final_embed)
+
+        # 채널 삭제 예고 및 실행
+        await ctx.send("⏰ **이 채널은 30초 후 삭제됩니다.**")
+
+        # 30초 대기 후 채널 삭제
+        await asyncio.sleep(30)
+
+        try:
+            await ctx.delete(reason="스킨 배틀 게임 종료")
+            print(f"스킨 배틀 채널 '{ctx.name}' 삭제 완료")
+        except discord.Forbidden:
+            print(f"채널 '{ctx.name}' 삭제 권한이 없습니다.")
+        except discord.NotFound:
+            print(f"채널 '{ctx.name}'이 이미 삭제되었습니다.")
+        except Exception as e:
+            print(f"채널 삭제 중 오류: {e}")
     
     # 준비 버튼 뷰 클래스
     class ReadyView(discord.ui.View):
