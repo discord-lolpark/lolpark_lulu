@@ -110,20 +110,28 @@ class RecruitmentView(discord.ui.View):
             inline=False
         )
         
-        start_embed.set_footer(text="게임 로직을 여기에 구현하세요!")
+        start_embed.set_footer(text="게임이 시작됩니다!")
         
         # 모든 버튼 비활성화
         for item in self.children:
             item.disabled = True
         
+        # 게임 시작 메시지를 임시로 표시
         await interaction.response.edit_message(embed=start_embed, view=self)
         
-        # TODO: 여기서 실제 게임 로직 실행
+        # 실제 게임 로직 실행
         print(f"게임 시작: {self.selected_game}, 참가자: {len(self.participants)}명")
         
         # 예시: 게임별 로직 실행
         if self.selected_game == "random_skin_battle":
             await self.start_random_skin_battle(interaction)
+        
+        # 게임 시작 후 모집 메시지 삭제
+        try:
+            await interaction.delete_original_response()
+            print("모집 메시지 삭제 완료")
+        except Exception as e:
+            print(f"모집 메시지 삭제 중 오류: {e}")
     
     async def start_random_skin_battle(self, interaction):
         """랜덤 스킨 배틀 게임 로직"""
@@ -279,10 +287,11 @@ class MinigameView(discord.ui.View):
             
             # 인원 선택 뷰로 전환
             view = ParticipantSelectView(game_id)
-            await interaction.response.send_message(
+            
+            # 원래 메시지를 새로운 메시지로 교체
+            await interaction.response.edit_message(
                 embed=embed,
-                view=view,
-                ephemeral=True
+                view=view
             )
             
         return game_callback
