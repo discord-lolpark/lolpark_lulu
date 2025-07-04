@@ -32,7 +32,7 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
     # 임베드 메시지 생성
     embed = discord.Embed(
         title="🎮 랜덤 스킨 배틀을 시작합니다!",
-        description=f"**참여자 목록:**\n{participants_text}",
+        description=f"**참여자 목록:**\n{participants_text}\n\n**게임 방법**\n\n- 무작위로 스킨 이미지가 하나 나옵니다.\n- 그 이미지에 해당하는 스킨 이름을 적어주시면 됩니다.\n- 띄어쓰기 여부도 검사합니다. 정확하게 입력해주세요.\n- 제한시간은 15초입니다.",
         color=0x00ff00
     )
     embed.set_footer(text="모든 참여자가 '준비' 버튼을 눌러주세요! (3분 제한)")
@@ -150,7 +150,7 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
                                 user_answer = self.submitted_answers[participant]
                                 if user_answer == self.correct_answer:
                                     # 정답인 경우
-                                    answer_status_lines.append(f"⭕ **{nickname}**: `{user_answer}` ✨")
+                                    answer_status_lines.append(f"⭕ **{nickname}**: `{user_answer}`")
                                 else:
                                     # 오답인 경우
                                     answer_status_lines.append(f"❌ **{nickname}**: `{user_answer}`")
@@ -169,14 +169,14 @@ async def run_skin_battle(participants: list[discord.Member], ctx: discord.TextC
                             # 마지막 문제가 아닌 경우
                             result_embed = discord.Embed(
                                 title="🎉 정답 공개!",
-                                description=f"**정답:** {self.correct_answer}\n\n**플레이어별 답안:**\n{answer_status_text}\n\n**현재 스코어:**\n{updated_score_text}\n\n⏰ **10초 후 다음 문제로 넘어갑니다.**",
+                                description=f"# **정답:** {self.correct_answer}\n\n**플레이어별 답안:**\n{answer_status_text}\n\n**현재 스코어:**\n{updated_score_text}\n\n⏰ **10초 후 다음 문제로 넘어갑니다.**",
                                 color=0xff9900
                             )
                         else:
                             # 마지막 문제인 경우
                             result_embed = discord.Embed(
                                 title="🎉 정답 공개!",
-                                description=f"**정답:** {self.correct_answer}\n\n**플레이어별 답안:**\n{answer_status_text}\n\n**현재 스코어:**\n{updated_score_text}\n\n⏰ **10초 후 최종 결과를 공개합니다.**",
+                                description=f"# **정답:** {self.correct_answer}\n\n**플레이어별 답안:**\n{answer_status_text}\n\n**현재 스코어:**\n{updated_score_text}\n\n⏰ **10초 후 최종 결과를 공개합니다.**",
                                 color=0xff9900
                             )
                         
