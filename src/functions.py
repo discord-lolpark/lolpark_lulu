@@ -167,6 +167,7 @@ lol_champion_korean_dict = {
     'yasuo': ['야스오', '야소'],
     'yone': ['요네'],
     'yorick': ['요릭'],
+    'yunara': ['유나라'],
     'yuumi': ['유미', '윾미'],
     'zac': ['자크'],
     'zed': ['제드'],
@@ -302,7 +303,7 @@ def get_champions_per_line(line_name):
         'bot': [
             'nilah', 'draven', 'lucian', 'missfortune', 'varus', 'vayne', 
             'samira', 'sivir', 'smolder', 'tristana', 'twitch', 'jhin', 'jinx', 
-            'kaisa', 'kalista', 'kogmaw', 'aphelios', 'ashe', 'ezreal', 'xayah', 
+            'kaisa', 'kalista', 'kogmaw', 'aphelios', 'ashe', 'yunara', 'ezreal', 'xayah', 
             'zeri', 'ziggs'
         ],
         'support': [
