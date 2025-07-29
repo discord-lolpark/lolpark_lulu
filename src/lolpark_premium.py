@@ -1,11 +1,31 @@
-from PIL import Image, ImageFont, ImageDraw, ImageOps, ImageFont
+
 import discord
 import aiohttp
 import io
-from config import division_matchid_dict, font_paths
+import asyncio
+from lolparklib.database_functions import (
+    get_summoner_stats
+)
+from lolparklib.discord_config import (
+    lolpark_season,
+    match_id_by_season,
+    premium_image_h,
+    premium_image_w
+)
+from lolparklib.champion_lib import champions_per_line
+from lolparklib.discord_functions import get_nickname, get_tier_color, get_user_tier_part
+from PIL import Image, ImageDraw, ImageFont
 
-w = 1500
-h = 1000
+from lolparklib.lol_functions import get_full_champion_kor_name
+from lolparklib.record_functions import get_banned_champions_by_position, get_linewise_game_stats, get_most_pick_personal, get_most_picked_champions, get_recent_champion_history 
+
+font_paths = {
+    "cookierun": "assets/fonts/CookieRun.ttf",
+    "ownglyph": "assets/fonts/Ownglyph.ttf",
+    "pyeongchang": "assets/fonts/pyeongchang.ttf",
+    "nickname": "assets/fonts/Nickname.ttf"
+}
+
 
 # 승률 계산
 def calculate_win_rate(win: int, lose: int) -> float:
@@ -15,29 +35,21 @@ def calculate_win_rate(win: int, lose: int) -> float:
     return round(win_rate, 2)  # 소수점 셋째 자리에서 반올림
 
 
-async def send_tier_adjust_profile(channel, member: discord.Member):
-    from record import get_personal_games_total
+async def send_tier_adjust_profile(channel, user: discord.Member):
 
     try:
-        # 전체 프로필 전송
-        total_profile = await get_lolpark_premium_profile(member, 0, 9999999999)
-        with io.BytesIO() as total_buffer:
-            total_profile.save(total_buffer, format='PNG')
-            total_buffer.seek(0)
-            await channel.send(file=discord.File(total_buffer, filename=f"total_profile.png"))
-        
         # 시즌별 프로필 전송
-        for season_category, (start_id, end_id) in division_matchid_dict.items():
+        for season_category, (start_id, end_id) in match_id_by_season.items():
             
             # 대회 내용은 전송 X
             if start_id > 1000000:
                 continue
 
-            season_games = get_personal_games_total(start_id=start_id, end_id=end_id, summoner_id=member.id)
+            season_games = get_summoner_stats(user, season=season_category)["total_games"]
 
             if season_games > 0:
                 try:
-                    season_profile = await get_lolpark_premium_profile(member, start_id, end_id)
+                    season_profile = await get_lolpark_premium_profile(user, start_id, end_id)
                     with io.BytesIO() as season_buffer:
                         season_profile.save(season_buffer, format='PNG')
                         season_buffer.seek(0)
@@ -48,12 +60,26 @@ async def send_tier_adjust_profile(channel, member: discord.Member):
 
     except Exception as e:
         print(f"프로필 전송 중 오류 발생: {e}")
-        await channel.send("프로필 생성 중 오류가 발생했습니다.")
+        await channel.send("프로필 생성 중 오류가 발생했습니다. 전적이 없을 가능성이 있습니다.")
+    
 
-async def lolpark_premium(member: discord.Member):
 
-    from record import get_personal_games_total
-    import asyncio
+# 요약 전적 가져오기 (/전적 사용시, 일반 서버원)
+def get_summarized_record_text(user: discord.member):
+
+    stat_dict = get_summoner_stats(user, season=lolpark_season)
+
+    total_games = stat_dict["total_games"]
+    total_win = stat_dict["wins"]
+    total_lose = stat_dict["loses"]
+    total_winrate = stat_dict["win_rate"]
+    
+    result_text = f'## 전체 내전 전적 : {total_games}전 {total_win}승 {total_lose}패 ( {total_winrate}% )\n'
+    
+    return result_text
+
+
+async def get_premium_record(member: discord.Member):
 
     result_future = asyncio.Future()
 
@@ -73,17 +99,16 @@ async def lolpark_premium(member: discord.Member):
                 pass
 
     class StatButton(discord.ui.Button):
-        def __init__(self, label, start_id, end_id, member, future):
-            button_style = discord.ButtonStyle.green if label == "통산" else discord.ButtonStyle.primary
-            super().__init__(label=label, style=button_style)
+        def __init__(self, season, member, future):
+            button_style = discord.ButtonStyle.green if season == "통산" else discord.ButtonStyle.primary
+            super().__init__(label=season, style=button_style)
             self.member = member
-            self.start_id = start_id
-            self.end_id = end_id
+            self.season = season
             self.future = future
         
         async def callback(self, interaction: discord.Interaction):
             await interaction.response.defer()
-            profile = await get_lolpark_premium_profile(self.member, self.start_id, self.end_id)
+            profile = await get_lolpark_premium_profile(self.member, self.season)
 
             if not self.future.done():
                 self.future.set_result(profile)
@@ -91,32 +116,21 @@ async def lolpark_premium(member: discord.Member):
         
     stat_view = LolparkPremiumStatView(member, result_future)
 
-    stat_view.add_item(StatButton("통산", 0, 9999999999, member, result_future))
-
-    for season_category, (start_id, end_id) in division_matchid_dict.items():
-        season_games = get_personal_games_total(start_id=start_id, end_id=end_id, summoner_id=member.id)
+    for season_category, (start_id, end_id) in match_id_by_season.items():
+        season_games = get_summoner_stats(member, season=season_category)["total_games"]
 
         if season_games > 0:
-            stat_view.add_item(StatButton(season_category, start_id, end_id, member, result_future))
+            stat_view.add_item(StatButton(season_category,  member, result_future))
     
     return stat_view, result_future
 
 
-    profile = await get_lolpark_premium_profile(member)
+async def get_lolpark_premium_profile(member: discord.Member, season: str):
 
-    return profile
-
-    buffer = io.BytesIO()
-    profile.save(buffer, format='PNG')
-    buffer.seek(0)
-
-    await ctx.send(file=discord.File(buffer, filename=f"{member.id}_profile.png"))
-    
-
-async def get_lolpark_premium_profile(member: discord.Member, start_id=0, end_id=999999999):
-
-    profile = Image.new('RGB', (w, h), 'skyblue')
+    profile = Image.new('RGB', (premium_image_w, premium_image_h), 'skyblue')
     padding = 50
+
+    start_id, end_id = match_id_by_season.get(season, (0, 9999999999))
 
     # 시즌 표시
     season_textbox = get_season_textbox(start_id, end_id)
@@ -131,7 +145,7 @@ async def get_lolpark_premium_profile(member: discord.Member, start_id=0, end_id
     tier_image = get_tier_image(member)
 
     # 통산 전적 textbox
-    full_record_textbox = get_full_record_textbox(member, start_id, end_id)
+    full_record_textbox = get_full_record_textbox(member, season)
 
     # 최근 전적 image
     recent_result_image = get_lastly_played_game_result(member, start_id, end_id)
@@ -169,7 +183,7 @@ def get_season_textbox(start_id, end_id):
 
     title = "통산"
 
-    for season_title, (s_i, e_i) in division_matchid_dict.items():
+    for season_title, (s_i, e_i) in match_id_by_season.items():
         if s_i == start_id and e_i == end_id:
             title = season_title
 
@@ -247,19 +261,27 @@ def get_textbox(x: int, y: int, text: str, font_path: str, max_font_size=200, mi
 
 
 def get_nickname_textbox(member: discord.Member):
-    
-    from functions import get_nickname, get_tier_color
 
-    return get_textbox(x=800, y=100, text=get_nickname(member), font_path=font_paths["jamsil"], padding=20, font_color=get_tier_color(member))
+    return get_textbox(x=800, y=100, text=get_nickname(member), font_path=font_paths["nickname"], padding=20, font_color=get_tier_color(member))
 
 
 def get_tier_image(member):
 
-    import functions
-
-    tier, tier_score = functions.get_tier(member)
+    tier_initial, tier_score = get_user_tier_part(member)
 
     tier_image = Image.new('RGB', (350, 100), 'skyblue')
+
+    tier = "challenger" if tier_initial == "C" else \
+        "grandmaster" if tier_initial == "GM" else \
+        "master" if tier_initial == "M" else \
+        "diamond" if tier_initial == "D" else \
+        "emerald" if tier_initial == "E" else \
+        "platinum" if tier_initial == "P" else \
+        "gold" if tier_initial == "G" else \
+        "silver" if tier_initial == "S" else \
+        "bronze" if tier_initial == "B" else \
+        "iron" if tier_initial == "I" else \
+        "unranked"
     
     def get_tier_logo(tier):
 
@@ -302,11 +324,9 @@ def get_tier_image(member):
     return tier_image
 
 
-def get_full_record_textbox(member, start_id, end_id):
+def get_full_record_textbox(member, season):
 
-    import record, functions
-
-    stat_dict = record.get_summoner_stats(member, start_id, end_id)
+    stat_dict = get_summoner_stats(member, season)
     
     x = 1500
     y = 200
@@ -329,14 +349,12 @@ def get_full_record_textbox(member, start_id, end_id):
 
 # 챔피언 프로필 이미지 가져오기
 def get_champion_profile_image(champion):
-
-    from functions import get_full_champion_kor_name
     
     champion_profile_img = Image.new('RGB', (100, 150), 'skyblue')
 
     champion_kor = get_full_champion_kor_name(champion)
 
-    champion_img = Image.open(f"assets/champions/square/{champion}.png").resize((100, 100), Image.Resampling.LANCZOS)
+    champion_img = Image.open(f"assets/champion_square/{champion}.png").resize((100, 100), Image.Resampling.LANCZOS)
 
     champion_name_textbox = get_textbox(x=100, y=40, text=champion_kor, font_path=font_paths["ownglyph"], max_font_size=50, min_font_size=5, padding=5, font_color='black')
 
@@ -349,14 +367,12 @@ def get_champion_profile_image(champion):
 # 모스트 픽 top 5 나열
 def get_most_pick_images(member, start_id, end_id):
 
-    from record import get_most_picked_champions
-
     most_x = 700
     most_y = 1000
 
     most_pick_image = Image.new('RGB', (most_x, most_y), 'skyblue')
 
-    most_pick_list = get_most_picked_champions(member.id, start_id, end_id)
+    most_pick_list = get_most_pick_personal(member.id, start_id, end_id)
 
     title_text = get_textbox(700, 100, text='MOST PICK', font_path=font_paths["pyeongchang"], max_font_size=50, padding=10, font_color='black')
 
@@ -385,9 +401,6 @@ def get_most_pick_images(member, start_id, end_id):
 # 모스트 픽 top 5 나열
 def get_most_banned_images(member, start_id, end_id):
 
-    from record import get_banned_champions_by_position
-    from functions import get_champions_per_line
-
     most_x = 500
     most_y = 1000
 
@@ -403,7 +416,7 @@ def get_most_banned_images(member, start_id, end_id):
         if ban_count == 0:
             continue
         
-        champion_per_line = get_champions_per_line(position_eng)
+        champion_per_line = champions_per_line[position_eng]
 
         if champion == "Total Games":
             continue
@@ -455,9 +468,6 @@ def get_lane_logo(line, primary=False):
 
 # 라인별 승률 나열
 def get_most_selected_lane(member, start_id, end_id):
-    
-    from record import get_linewise_game_stats
-    from functions import get_kor_line_name
 
     lane_x = 700
     lane_y = 1000
@@ -475,7 +485,15 @@ def get_most_selected_lane(member, start_id, end_id):
         record_image = Image.new('RGB', (700, 140), 'skyblue')
         line_image = get_lane_logo(line, primary=primary)
 
-        line_name_textbox = get_textbox(x=100, y=40, text=get_kor_line_name(line), font_path=font_paths["ownglyph"], max_font_size=40, min_font_size=40, padding=5, font_color='black')
+        line_kor = {
+            "top": "탑",
+            "jungle": "정글",
+            "mid": "미드",
+            "bot": "원딜",
+            "support": "서포터"
+        }
+
+        line_name_textbox = get_textbox(x=100, y=40, text=line_kor.get(line, "없음"), font_path=font_paths["ownglyph"], max_font_size=40, min_font_size=40, padding=5, font_color='black')
         record_text = f"{games}전 {win}승 {lose}패 ({win_rate}%)"
 
         record_text_color = 'red' if win_rate >= 60.0 else 'blue' if win_rate <= 40.0 else 'gray'
@@ -502,9 +520,7 @@ def get_most_selected_lane(member, start_id, end_id):
 # 최근 전적 나열 (최근 10개 게임?)
 def get_lastly_played_game_result(member, start_id, end_id):
 
-    from record import get_recent_champion_history
-
-    recent_result_image = Image.new('RGB', (w, 200), 'skyblue')
+    recent_result_image = Image.new('RGB', (premium_image_w, 200), 'skyblue')
 
     recent_x = 60
     recent_y = 80
@@ -522,7 +538,7 @@ def get_lastly_played_game_result(member, start_id, end_id):
 
         game_info_textbox = get_textbox(recent_x, recent_y // 4, f"#{match_id}({game_index})", font_paths['cookierun'], font_color='gray')
 
-        champion_image = Image.open(f"assets/champions/square/{champion_eng}.png").resize((recent_x, recent_y * 3 // 4), Image.Resampling.LANCZOS)
+        champion_image = Image.open(f"assets/champion_square/{champion_eng}.png").resize((recent_x, recent_y * 3 // 4), Image.Resampling.LANCZOS)
 
         result_per_champion_image.paste(game_info_textbox, (0, 0))
         result_per_champion_image.paste(champion_image, (0, recent_y // 4))
@@ -563,14 +579,3 @@ def get_lastly_played_game_result(member, start_id, end_id):
         count += 1
 
     return recent_result_image
-
-
-
-
-
-
-
-
-
-
-
