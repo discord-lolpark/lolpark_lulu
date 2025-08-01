@@ -1,5 +1,5 @@
 import discord
-from functions import get_nickname, get_nickname_without_tag
+from lolparklib import get_nickname
 
 # 티어조정 카테고리 id
 tier_adjust_category_id = 1358075007942791339
@@ -43,13 +43,13 @@ async def apply_tier_adjust(interaction: discord.Interaction, member: discord.Me
 
         # 채널 생성 시 권한 설정 적용
         tier_adjust_channel = await tier_category.create_text_channel(
-            name=f"{get_nickname_without_tag(member)} 티어조정",
+            name=f"{get_nickname(member)} 티어조정",
             overwrites=overwrites
         )
 
         # 비공개 스레드 생성
         private_thread = await tier_adjust_channel.create_thread(
-            name=f"{get_nickname_without_tag(member)} 자문단 토론",
+            name=f"{get_nickname(member)} 자문단 토론",
             type=discord.ChannelType.private_thread,
             invitable=False  # 초대 불가능하게 설정
         )

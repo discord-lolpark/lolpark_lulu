@@ -157,6 +157,12 @@ async def 테스트(ctx):
 @bot.tree.command()
 async def 최근전적(interaction: discord.Interaction):
 
+    await interaction.response.send_message(
+        content="준비 중입니다.",
+        ephemeral=True
+    )
+    return
+
     from last_record import get_personal_game_result_image
 
     result_image = get_personal_game_result_image(interaction)
