@@ -145,4 +145,4 @@ async def start_tier_vote(interaction: discord.Interaction, target_channel: disc
         color=discord.Color.blue()
     )
     
-    await interaction.response.send_message(embed=embed, view=vote_view)
+    await interaction.channel.send(embed=embed, view=vote_view)

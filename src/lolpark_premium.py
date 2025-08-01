@@ -49,7 +49,7 @@ async def send_tier_adjust_profile(channel, user: discord.Member):
 
             if season_games > 0:
                 try:
-                    season_profile = await get_lolpark_premium_profile(user, start_id, end_id)
+                    season_profile = await get_lolpark_premium_profile(user, season_category)
                     with io.BytesIO() as season_buffer:
                         season_profile.save(season_buffer, format='PNG')
                         season_buffer.seek(0)
