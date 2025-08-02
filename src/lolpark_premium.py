@@ -230,6 +230,8 @@ async def get_profile_image(member:discord.Member):
 # 텍스트박스 그리기
 def get_textbox(x: int, y: int, text: str, font_path: str, max_font_size=200, min_font_size=10, padding=10, font_color='white', background_color='skyblue'):
     textbox_image = Image.new('RGB', (x, y), background_color)
+    if text is None:
+        text = "알 수 없음"
     draw = ImageDraw.Draw(textbox_image)
     font_size = max_font_size
 
