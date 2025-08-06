@@ -8,16 +8,16 @@ from lolparklib.database_functions import (
 )
 from lolparklib.discord_config import (
     lolpark_season,
-    match_id_by_season,
+    season_name_list,
+    cup_name_list,
     premium_image_h,
     premium_image_w
 )
 from lolparklib.champion_lib import champions_per_line
 from lolparklib.discord_functions import get_nickname, get_tier_color, get_user_tier_part
 from PIL import Image, ImageDraw, ImageFont
-
 from lolparklib.lol_functions import get_full_champion_kor_name
-from lolparklib.record_functions import get_banned_champions_by_position, get_linewise_game_stats, get_most_pick_personal, get_most_picked_champions, get_recent_champion_history 
+from lolparklib.record_functions import get_banned_champions_by_position, get_linewise_game_stats, get_recent_champion_history, get_most_picked_champions_for_record
 
 font_paths = {
     "cookierun": "assets/fonts/CookieRun.ttf",
@@ -39,23 +39,19 @@ async def send_tier_adjust_profile(channel, user: discord.Member):
 
     try:
         # 시즌별 프로필 전송
-        for season_category, (start_id, end_id) in match_id_by_season.items():
-            
-            # 대회 내용은 전송 X
-            if start_id > 1000000:
-                continue
+        for season_name in season_name_list:
 
-            season_games = get_summoner_stats(user, season=season_category)["total_games"]
+            season_games = get_summoner_stats(user, season_name=season_name)["total_games"]
 
             if season_games > 0:
                 try:
-                    season_profile = await get_lolpark_premium_profile(user, season_category)
+                    season_profile = await get_lolpark_premium_profile(user, season_name)
                     with io.BytesIO() as season_buffer:
                         season_profile.save(season_buffer, format='PNG')
                         season_buffer.seek(0)
-                        await channel.send(file=discord.File(season_buffer, filename=f"{season_category}_profile.png"))
+                        await channel.send(file=discord.File(season_buffer, filename=f"{season_name}_profile.png"))
                 except Exception as e:
-                    print(f"시즌 {season_category} 프로필 생성 실패: {e}")
+                    print(f"{season_name} 프로필 생성 실패: {e}")
                     continue
 
     except Exception as e:
@@ -65,9 +61,9 @@ async def send_tier_adjust_profile(channel, user: discord.Member):
 
 
 # 요약 전적 가져오기 (/전적 사용시, 일반 서버원)
-def get_summarized_record_text(user: discord.member):
+def get_summarized_record_text(user: discord.member, season: str=lolpark_season):
 
-    stat_dict = get_summoner_stats(user, season=lolpark_season)
+    stat_dict = get_summoner_stats(user, season_name=season)
 
     total_games = stat_dict["total_games"]
     total_win = stat_dict["wins"]
@@ -116,24 +112,28 @@ async def get_premium_record(member: discord.Member):
         
     stat_view = LolparkPremiumStatView(member, result_future)
 
-    for season_category, (start_id, end_id) in match_id_by_season.items():
-        season_games = get_summoner_stats(member, season=season_category)["total_games"]
+    for season_name in season_name_list:
+        season_games = get_summoner_stats(member, season_name)["total_games"]
 
         if season_games > 0:
-            stat_view.add_item(StatButton(season_category,  member, result_future))
+            stat_view.add_item(StatButton(season_name,  member, result_future))
+
+    for cup_name in cup_name_list:
+        cup_games = get_summoner_stats(member, cup_name)["total_games"]
+
+        if cup_games > 0:
+            stat_view.add_item(StatButton(cup_name,  member, result_future))
     
     return stat_view, result_future
 
 
-async def get_lolpark_premium_profile(member: discord.Member, season: str):
+async def get_lolpark_premium_profile(member: discord.Member, season_name: str):
 
     profile = Image.new('RGB', (premium_image_w, premium_image_h), 'skyblue')
     padding = 50
 
-    start_id, end_id = match_id_by_season.get(season, (0, 9999999999))
-
     # 시즌 표시
-    season_textbox = get_season_textbox(start_id, end_id)
+    season_textbox = get_season_textbox(season_name)
 
     # 디스코드 프로필 이미지
     profile_image = await get_profile_image(member)
@@ -145,19 +145,19 @@ async def get_lolpark_premium_profile(member: discord.Member, season: str):
     tier_image = get_tier_image(member)
 
     # 통산 전적 textbox
-    full_record_textbox = get_full_record_textbox(member, season)
+    full_record_textbox = get_full_record_textbox(member, season_name)
 
     # 최근 전적 image
-    recent_result_image = get_lastly_played_game_result(member, start_id, end_id)
+    recent_result_image = get_lastly_played_game_result(member, season_name)
 
     # 모스트 픽
-    most_pick_image = get_most_pick_images(member, start_id, end_id)
+    most_pick_image = get_most_pick_images(member, season_name)
 
     # 저격밴
-    most_banned_image = get_most_banned_images(member, start_id, end_id)
+    most_banned_image = get_most_banned_images(member, season_name)
 
     # 라인별 승률
-    winrate_by_lane_image = get_most_selected_lane(member, start_id, end_id)
+    winrate_by_lane_image = get_most_selected_lane(member, season_name)
 
     # 각 이미지들 paste
     profile.paste(season_textbox, (padding, 0))
@@ -179,13 +179,9 @@ async def get_lolpark_premium_profile(member: discord.Member, season: str):
     return profile
 
 
-def get_season_textbox(start_id, end_id):
+def get_season_textbox(season_name: str):
 
-    title = "통산"
-
-    for season_title, (s_i, e_i) in match_id_by_season.items():
-        if s_i == start_id and e_i == end_id:
-            title = season_title
+    title = season_name
 
     title += " 전적"
 
@@ -326,9 +322,9 @@ def get_tier_image(member):
     return tier_image
 
 
-def get_full_record_textbox(member, season):
+def get_full_record_textbox(member, season_name):
 
-    stat_dict = get_summoner_stats(member, season)
+    stat_dict = get_summoner_stats(member, season_name)
     
     x = 1500
     y = 200
@@ -367,14 +363,14 @@ def get_champion_profile_image(champion):
 
 
 # 모스트 픽 top 5 나열
-def get_most_pick_images(member, start_id, end_id):
+def get_most_pick_images(member, season_name):
 
     most_x = 700
     most_y = 1000
 
     most_pick_image = Image.new('RGB', (most_x, most_y), 'skyblue')
 
-    most_pick_list = get_most_pick_personal(member.id, start_id, end_id)
+    most_pick_list = get_most_picked_champions_for_record(member, season_name=season_name)
 
     title_text = get_textbox(700, 100, text='MOST PICK', font_path=font_paths["pyeongchang"], max_font_size=50, padding=10, font_color='black')
 
@@ -401,14 +397,14 @@ def get_most_pick_images(member, start_id, end_id):
 
 
 # 모스트 픽 top 5 나열
-def get_most_banned_images(member, start_id, end_id):
+def get_most_banned_images(member, season_name):
 
     most_x = 500
     most_y = 1000
 
     most_banned_image = Image.new('RGB', (most_x, most_y), 'skyblue')
 
-    banned_by_lane_result = get_banned_champions_by_position(member.id, start_id, end_id)
+    banned_by_lane_result = get_banned_champions_by_position(member, season_name)
 
     banned_dict = {}
 
@@ -469,7 +465,7 @@ def get_lane_logo(line, primary=False):
 
 
 # 라인별 승률 나열
-def get_most_selected_lane(member, start_id, end_id):
+def get_most_selected_lane(member, season_name):
 
     lane_x = 700
     lane_y = 1000
@@ -480,7 +476,7 @@ def get_most_selected_lane(member, start_id, end_id):
 
     lane_record_image.paste(title_text, (0, 0))
 
-    line_record = get_linewise_game_stats(member.id, start_id, end_id) # (라인 이름(영어), 총 게임 수, 승, 패, 승률)
+    line_record = get_linewise_game_stats(member, season_name) # (라인 이름(영어), 총 게임 수, 승, 패, 승률)
 
     def get_record_by_lane(line, games, win, lose, win_rate, primary=False):
 
@@ -520,17 +516,15 @@ def get_most_selected_lane(member, start_id, end_id):
 
 
 # 최근 전적 나열 (최근 10개 게임?)
-def get_lastly_played_game_result(member, start_id, end_id):
+def get_lastly_played_game_result(member, season_name: str):
 
     recent_result_image = Image.new('RGB', (premium_image_w, 200), 'skyblue')
 
     recent_x = 60
     recent_y = 80
 
-    if end_id > 100000000:
-        end_id = 1000000
 
-    recent_result = get_recent_champion_history(member.id, start_id, end_id)
+    recent_result = get_recent_champion_history(member.id, season_name)
 
     def get_result_per_champion(match_id: int, game_index: int, champion_eng: str, line: str, is_win: bool):
 

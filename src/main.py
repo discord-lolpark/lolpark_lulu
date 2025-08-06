@@ -65,7 +65,7 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     async def send_standard_profile():
         profile_embed = discord.Embed(
             title=f"[ {lolpark_season} ]",
-            description=get_summarized_record_text(member),
+            description=get_summarized_record_text(member, lolpark_season),
             color=discord.Color.blue()
         )
         icon_url = member.avatar.url if member.avatar else member.default_avatar.url
@@ -79,14 +79,14 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     
     # 공개 채널
     if interaction.channel.id == record_search_channel_public_id:
-        if get_match_played(interaction.user) >= 30:
+        if get_match_played(interaction.user, lolpark_season) >= 30:
             await send_premium_profile()
         else:
             await send_standard_profile()
     
     # 비공개 채널
     if interaction.channel.id == record_search_channel_private_id:
-        if get_match_played(interaction.user) >= 30:
+        if get_match_played(interaction.user, lolpark_season) >= 30:
             await send_premium_profile()
         else:
             await interaction.followup.send(
