@@ -9,22 +9,145 @@ from lolparklib.database_functions import (
 from lolparklib.discord_config import (
     lolpark_season,
     season_name_list,
-    cup_name_list,
-    premium_image_h,
-    premium_image_w
+    cup_name_list
 )
-from lolparklib.champion_lib import champions_per_line
-from lolparklib.discord_functions import get_nickname, get_tier_color, get_user_tier_part
 from PIL import Image, ImageDraw, ImageFont
-from lolparklib.lol_functions import get_full_champion_kor_name
-from lolparklib.record_functions import get_banned_champions_by_position, get_linewise_game_stats, get_recent_champion_history, get_most_picked_champions_for_record
+from lolparklib.discord_functions import get_nickname, get_user_tier_part
+from lolparklib.image_functions import *
+from lolparklib.record_functions import get_recent_champion_history
 
-font_paths = {
-    "cookierun": "assets/fonts/CookieRun.ttf",
-    "ownglyph": "assets/fonts/Ownglyph.ttf",
-    "pyeongchang": "assets/fonts/pyeongchang.ttf",
-    "nickname": "assets/fonts/Nickname.ttf"
-}
+asset_dir = "assets"
+w = 1920
+h = 1080
+profile_image_size = (160, 160)
+champion_image_size = 64
+
+
+async def get_lolpark_premium_profile(member: discord.Member, season_name: str):
+
+    profile_image = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(profile_image)
+
+    # 배경 이미지
+    background_image = Image.open(f"{asset_dir}/lolpark_images/loading_background.png").convert("RGBA")
+    profile_image.paste(background_image, (0, 0))
+
+    # 반투명 배경 박스
+    transparent_box = get_transparent_image(int(w * 0.9), int(h * 0.85), darkness=100)
+    profile_image.paste(transparent_box, ((w - transparent_box.width) // 2, (h - transparent_box.height) // 2 + 30) , transparent_box)
+
+    # 전적 박스 텍스트
+    title_box = Image.new('RGBA', (400, 90), "#0F0E0E")
+    profile_image.paste(title_box, (0, 70), title_box)
+    title_textbox = get_textbox_image("통산 전적", 370, 90, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/riasans.ttf")
+    profile_image.paste(title_textbox, (20, 70), title_textbox)
+
+    # 시즌 텍스트
+    draw.text(
+        xy=(420, 70),
+        text=f"[ {season_name} ]",
+        font=ImageFont.truetype(f"{asset_dir}/fonts/NotoSansKR.ttf", 25),
+        fill="#252121"
+    )
+
+    #### 멤버 프로필 ####
+
+    # 멤버 프로필 반투명 박스
+    member_profile_transparent_box = make_rounded(Image.new('RGBA', (560, 320), color="#302D2D"), radius=80)
+    profile_image.paste(member_profile_transparent_box, (180, 150), member_profile_transparent_box)
+
+    # 멤버 프로필 이미지
+    member_profile_image = make_rounded(await get_profile_image(member), radius=20)
+    member_profile_image = member_profile_image.resize(profile_image_size, Image.LANCZOS)
+    profile_image.paste(member_profile_image, (260, 200), member_profile_image)
+
+    # 멤버 티어 정보
+    tier_initial, tier_score = get_user_tier_part(member)
+
+    tier = "challenger" if tier_initial == "C" else \
+        "grandmaster" if tier_initial == "GM" else \
+        "master" if tier_initial == "M" else \
+        "diamond" if tier_initial == "D" else \
+        "emerald" if tier_initial == "E" else \
+        "platinum" if tier_initial == "P" else \
+        "gold" if tier_initial == "G" else \
+        "silver" if tier_initial == "S" else \
+        "bronze" if tier_initial == "B" else \
+        "iron" if tier_initial == "I" else \
+        "unranked"
+
+    member_tier_image = Image.open(f"{asset_dir}/tier_image/icon/{tier}.png").convert("RGBA").resize((160, 160), Image.LANCZOS)
+    profile_image.paste(member_tier_image, (500, 170), member_tier_image)
+    tier_text = "[" + tier_initial.upper() + str(tier_score) + "]"
+    tier_textbox = get_textbox_image(tier_text, 160, 60, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
+    profile_image.paste(tier_textbox, (500, 300), tier_textbox)
+
+    # 멤버 닉네임
+    nickname = get_nickname(member)
+    nickname_textbox = get_nickname_textbox_image(nickname, 500, 120, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
+    profile_image.paste(nickname_textbox, (210, 360), nickname_textbox)
+
+    # 전체 내전 전적 박스 텍스트
+    total_box = Image.new('RGBA', (300, 60), "#0F0E0E")
+    profile_image.paste(total_box, (200, 500), total_box)
+    total_textbox = get_textbox_image("전체 내전 전적", total_box.width, total_box.height, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
+    profile_image.paste(total_textbox, (200, 500), total_textbox)
+
+    # 전체 내전 전적
+    stat_dict = get_summoner_stats(member, season_name=season_name)
+    total_games = stat_dict["total_games"]
+    total_win = stat_dict["wins"]
+    total_lose = stat_dict["loses"]
+    total_winrate = stat_dict["win_rate"]
+    total_record_text = f'{total_games}전 {total_win}승 {total_lose}패 ( {total_winrate}% )'
+    total_record_textbox = get_textbox_image(total_record_text, 600, 55, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
+    profile_image.paste(total_record_textbox, (200, 570), total_record_textbox)
+
+    # 최근 전적 박스 텍스트
+    recent_box = Image.new('RGBA', (250, 60), "#0F0E0E")
+    profile_image.paste(recent_box, (200, 660), recent_box)
+    recent_textbox = get_textbox_image("최근 전적", recent_box.width, recent_box.height, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
+    profile_image.paste(recent_textbox, (200, 660), recent_textbox)
+
+    # 최근 전적
+    recent_result = get_recent_champion_history(member.id, season_name)
+    
+    recent_win_count = 0
+    recent_lose_count = 0
+
+    for index, game_info in enumerate(recent_result):
+        
+        row_count = 10
+
+        match_id = game_info[0]
+        game_index = game_info[1]
+        champion_name_eng = game_info[2]
+        is_win = True if game_info[4] == "승리" else False
+
+
+        game_info_textbox_height = 20
+
+        champion_image = Image.open(f"{asset_dir}/champion_square/{champion_name_eng}.png").convert("RGBA").resize((champion_image_size, champion_image_size), Image.LANCZOS)
+
+        game_info_textbox = get_textbox_image(f"#{match_id}({game_index})", champion_image_size, game_info_textbox_height, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
+
+        profile_image.paste(champion_image, (200 + (index % row_count) * champion_image_size, 730 + (index // row_count) * (champion_image_size + game_info_textbox_height) + game_info_textbox_height), champion_image)
+        profile_image.paste(game_info_textbox, (200 + (index % row_count) * champion_image_size, 730 + (index // row_count) * (champion_image_size + game_info_textbox_height)), game_info_textbox)
+        draw.text(
+            xy =(200 + (index % row_count) * champion_image_size + 24, 730 + (index // row_count + 1) * (champion_image_size + game_info_textbox_height) - 25),
+            text="W" if is_win else "L",
+            font=ImageFont.truetype(f"{asset_dir}/fonts/nanumgothic.ttf", 20),
+            fill="#FFE927" if is_win else "#867E7E"
+        )
+
+        recent_win_count += 1 if is_win else 0
+        recent_lose_count += 0 if is_win else 1
+    
+    recent_record_text = f'{recent_win_count + recent_lose_count}전 {recent_win_count}승 {recent_lose_count}패 ( {calculate_win_rate(recent_win_count, recent_lose_count)}% )'
+    recent_record_textbox = get_textbox_image(recent_record_text, 350, 55, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
+    profile_image.paste(recent_record_textbox, (460, 665), recent_record_textbox)
+
+    return profile_image
 
 
 # 승률 계산
@@ -96,8 +219,8 @@ async def get_premium_record(member: discord.Member):
 
     class StatButton(discord.ui.Button):
         def __init__(self, season, member, future):
-            button_style = discord.ButtonStyle.green if season == "통산" else discord.ButtonStyle.primary
-            super().__init__(label=season, style=button_style)
+            button_style = discord.ButtonStyle.green if season == lolpark_season else discord.ButtonStyle.red if season == "통산" else discord.ButtonStyle.primary
+            super().__init__(label=f"{season} (현재 시즌)" if season == lolpark_season else season, style=button_style, row=1 if season == lolpark_season else 0 if season == "통산" else 2)
             self.member = member
             self.season = season
             self.future = future
@@ -112,7 +235,15 @@ async def get_premium_record(member: discord.Member):
         
     stat_view = LolparkPremiumStatView(member, result_future)
 
+    current_season_games = get_summoner_stats(member, lolpark_season)["total_games"]
+
+    if current_season_games > 0:
+        stat_view.add_item(StatButton(lolpark_season,  member, result_future))
+
     for season_name in season_name_list:
+        if season_name == lolpark_season:
+            continue
+
         season_games = get_summoner_stats(member, season_name)["total_games"]
 
         if season_games > 0:
@@ -127,451 +258,51 @@ async def get_premium_record(member: discord.Member):
     return stat_view, result_future
 
 
-async def get_lolpark_premium_profile(member: discord.Member, season_name: str):
-
-    profile = Image.new('RGB', (premium_image_w, premium_image_h), 'skyblue')
-    padding = 50
-
-    # 시즌 표시
-    season_textbox = get_season_textbox(season_name)
-
-    # 디스코드 프로필 이미지
-    profile_image = await get_profile_image(member)
-
-    # 롤 닉네임#태그
-    nickname_textbox = get_nickname_textbox(member)
-
-    # 현재 티어 로고
-    tier_image = get_tier_image(member)
-
-    # 통산 전적 textbox
-    full_record_textbox = get_full_record_textbox(member, season_name)
-
-    # 최근 전적 image
-    recent_result_image = get_lastly_played_game_result(member, season_name)
-
-    # 모스트 픽
-    most_pick_image = get_most_pick_images(member, season_name)
-
-    # 저격밴
-    most_banned_image = get_most_banned_images(member, season_name)
-
-    # 라인별 승률
-    winrate_by_lane_image = get_most_selected_lane(member, season_name)
-
-    # 각 이미지들 paste
-    profile.paste(season_textbox, (padding, 0))
-    profile.paste(profile_image, (padding, padding))
-    profile.paste(nickname_textbox, (padding + padding // 2 + profile_image.width, padding))
-    profile.paste(tier_image, (padding * 2 + profile_image.width + nickname_textbox.width, padding))
-
-    profile.paste(full_record_textbox, (padding, padding * 2 + 100))
-
-    profile.paste(recent_result_image, (padding, padding * 2 + 200))
-
-    # 모스트 픽 top 5
-    profile.paste(most_pick_image, (padding, 400))
-    # 저격밴 top 5
-    profile.paste(most_banned_image, (padding + 500, 400))
-    # 라인별 승률
-    profile.paste(winrate_by_lane_image, (padding + 500 + 380, 400))
-
-    return profile
 
 
-def get_season_textbox(season_name: str):
+def get_textbox_image(text, x, y, font_color="#ECE4E4", font_path=f"{asset_dir}/fonts/Nickname.ttf"):
 
-    title = season_name
-
-    title += " 전적"
-
-    textbox = get_textbox(300, 50, title, font_path=font_paths["cookierun"], font_color="black")
-
-    return textbox
-
-async def get_profile_image(member:discord.Member):
-
-    profile_image_url = member.display_avatar.url
+    x_padding = 10
+    y_padding = 7
+    # 투명한 배경으로 생성
+    nickname_textbox_image = Image.new('RGBA', (x, y), (0, 0, 0, 0))  # 완전 투명
+    draw = ImageDraw.Draw(nickname_textbox_image)
     
-    # 프로필 이미지 다운로드 (메모리에서 직접 불러오기)
-    async with aiohttp.ClientSession() as session:
-        async with session.get(profile_image_url) as resp:
-            if resp.status != 200:
-                avatar_data = None
-                return
-            avatar_data = await resp.read()
-
-    # 프로필 이미지를 PIL Image로 변환 (메모리에서 처리)
-    profile_image_size = (100, 100)
-    profile_image = Image.open(io.BytesIO(avatar_data)).convert("RGBA").resize((100, 100), Image.Resampling.LANCZOS)
-
-    # ✅ "L" 모드 (그레이스케일) 마스크 생성
-    mask = Image.new("L", profile_image_size, 0)  # 검은색 (완전 투명)
-    draw = ImageDraw.Draw(mask)
-
-    # ✅ 둥근 모서리를 위한 마스크 적용 (radius=30)
-    draw.rounded_rectangle((0, 0, profile_image_size[0], profile_image_size[1]), radius=30, fill=255)
-
-    # ✅ 배경이 skyblue인 이미지 생성
-    background = Image.new("RGBA", profile_image_size, "skyblue")
-
-    # ✅ 프로필 이미지를 둥근 마스크를 적용한 형태로 배경에 붙이기
-    rounded_profile_image = Image.new("RGBA", profile_image_size, "skyblue")
-    rounded_profile_image.paste(profile_image, (0, 0), mask)
-    background.paste(rounded_profile_image, (0, 0), rounded_profile_image)
-
-    return rounded_profile_image
-
-
-# 텍스트박스 그리기
-def get_textbox(x: int, y: int, text: str, font_path: str, max_font_size=200, min_font_size=10, padding=10, font_color='white', background_color='skyblue'):
-    textbox_image = Image.new('RGB', (x, y), background_color)
-    if text is None:
-        text = "알 수 없음"
-    draw = ImageDraw.Draw(textbox_image)
+    max_font_size = 100
+    min_font_size = 10
     font_size = max_font_size
 
     while font_size >= min_font_size:
         font = ImageFont.truetype(font_path, font_size)
-        # 텍스트 크기 측정 (bbox는 (left, top, right, bottom) 반환)
         bbox = draw.textbbox((0, 0), text, font=font)
-        
-        # 텍스트 실제 너비와 높이 계산
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
 
-        # 텍스트가 박스 안에 들어가면 폰트 크기 확정
-        if text_width <= x - padding * 2 and text_height <= y - padding * 2:
+        if text_width <= x - x_padding * 2 and text_height <= y - y_padding * 2:
             break
-        font_size -= 2  # 폰트 크기를 줄이면서 확인
+        font_size -= 2
 
-    # 텍스트 위치 중앙 정렬 (bbox 오프셋 고려)
-    text_x = (x - text_width) // 2 - bbox[0]  # left 오프셋 보정
-    text_y = (y - text_height) // 2 - bbox[1]  # top 오프셋 보정
+    # 실제 텍스트 렌더링 영역 기준으로 중앙 정렬
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+    
+    # X축 중앙 정렬
+    text_x = (x - text_width) // 2
+    
+    # Y축 진짜 중앙 정렬 (베이스라인 보정)
+    text_y = (y - text_height) // 2 - bbox[1]  # bbox[1]이 음수라서 빼면 위로 올라감
+    
+    # 텍스트에 따른 추가 보정
+    if any('\uac00' <= char <= '\ud7af' for char in text):  # 한글 포함
+        text_y += 2  # 한글은 살짝 아래로
+    else:  # 영어만
+        text_y += 0  # 영어는 보정 없음
 
-    # 배경은 이미지 생성 시 이미 채워졌으므로 다시 그릴 필요 없음
-    # draw.rectangle([0, 0, x, y], fill=background_color)  # x*2, y*2가 아닌 x, y로 수정
+    # 배경은 투명하게 (이 줄 제거)
+    # draw.rectangle([0, 0, x, y], fill=winlose_background_color)
 
-    # 텍스트 추가 (오프셋 보정된 위치에)
+    # 텍스트만 추가
     draw.text((text_x, text_y), text, fill=font_color, font=font)
 
-    return textbox_image
-
-
-def get_nickname_textbox(member: discord.Member):
-
-    return get_textbox(x=800, y=100, text=get_nickname(member), font_path=font_paths["nickname"], padding=20, font_color=get_tier_color(member))
-
-
-def get_tier_image(member):
-
-    tier_initial, tier_score = get_user_tier_part(member)
-
-    tier_image = Image.new('RGB', (350, 100), 'skyblue')
-
-    tier = "challenger" if tier_initial == "C" else \
-        "grandmaster" if tier_initial == "GM" else \
-        "master" if tier_initial == "M" else \
-        "diamond" if tier_initial == "D" else \
-        "emerald" if tier_initial == "E" else \
-        "platinum" if tier_initial == "P" else \
-        "gold" if tier_initial == "G" else \
-        "silver" if tier_initial == "S" else \
-        "bronze" if tier_initial == "B" else \
-        "iron" if tier_initial == "I" else \
-        "unranked"
-    
-    def get_tier_logo(tier):
-
-        # ✅ 원본 이미지 불러오기 (RGBA 모드 유지)
-        tier_logo_image = Image.open(f"assets/tier_image/icon/{tier}.png").convert("RGBA").resize((100, 100), Image.Resampling.LANCZOS)
-
-        # ✅ 새로운 배경 생성 (예: skyblue)
-        background = Image.new("RGBA", tier_logo_image.size, "skyblue")
-
-        # ✅ 투명한 부분을 skyblue로 채운 이미지 생성
-        background.paste(tier_logo_image, (0, 0), tier_logo_image)
-
-        return background
-    
-    def get_tier_score_textbox(tier, tier_score):
-        
-        tier_score_textbox_image = Image.new('RGB', (200, 80), 'skyblue')
-        draw = ImageDraw.Draw(tier_score_textbox_image)
-        font_path = "assets/fonts/CookieRun.ttf"
-        font_size = 60
-        font_color = "gray"
-        font = ImageFont.truetype(font_path, font_size)
-
-        if tier in ['challenger', 'grandmaster', 'master']:
-            draw.text((0, 10), f"{tier_score}LP", fill=font_color, font=font)
-        elif tier in ['unranked']:
-            draw.text((0, 10), f"UNRANKED", fill=font_color, font=font)
-        else:
-            tier_level_text = ["I", "II", "III", "IV"]
-            draw.text((0, 20), f"{tier_level_text[tier_score - 1]}", fill=font_color, font=font)
-        
-        return tier_score_textbox_image
-
-    tier_logo = get_tier_logo(tier)
-    tier_score_textbox = get_tier_score_textbox(tier, tier_score)
-
-    tier_image.paste(tier_logo, (0,0))
-    tier_image.paste(tier_score_textbox, (125, 0))
-
-    return tier_image
-
-
-def get_full_record_textbox(member, season_name):
-
-    stat_dict = get_summoner_stats(member, season_name)
-    
-    x = 1500
-    y = 200
-
-    record_textbox_image = Image.new('RGB', (x, y), 'skyblue')
-    draw = ImageDraw.Draw(record_textbox_image)
-
-    total_games = stat_dict["total_games"]
-    total_win = stat_dict["wins"]
-    total_lose = stat_dict["loses"]
-    total_winrate = stat_dict["win_rate"]
-
-    full_record_text = f'전체 내전 전적 : {total_games}전 {total_win}승 {total_lose}패 ( {total_winrate}% )'
-    full_record_font = ImageFont.truetype("assets/fonts/CookieRun.ttf", 70)
-
-    draw.text((0, 0), full_record_text, fill='black', font=full_record_font)
-    
-    return record_textbox_image
-
-
-# 챔피언 프로필 이미지 가져오기
-def get_champion_profile_image(champion):
-    
-    champion_profile_img = Image.new('RGB', (100, 150), 'skyblue')
-
-    champion_kor = get_full_champion_kor_name(champion)
-
-    champion_img = Image.open(f"assets/champion_square/{champion}.png").resize((100, 100), Image.Resampling.LANCZOS)
-
-    champion_name_textbox = get_textbox(x=100, y=40, text=champion_kor, font_path=font_paths["ownglyph"], max_font_size=50, min_font_size=5, padding=5, font_color='black')
-
-    champion_profile_img.paste(champion_img, (0, 0))
-    champion_profile_img.paste(champion_name_textbox, (0, 100))
-
-    return champion_profile_img
-
-
-# 모스트 픽 top 5 나열
-def get_most_pick_images(member, season_name):
-
-    most_x = 700
-    most_y = 1000
-
-    most_pick_image = Image.new('RGB', (most_x, most_y), 'skyblue')
-
-    most_pick_list = get_most_picked_champions_for_record(member, season_name=season_name)
-
-    title_text = get_textbox(700, 100, text='MOST PICK', font_path=font_paths["pyeongchang"], max_font_size=50, padding=10, font_color='black')
-
-    most_pick_image.paste(title_text, (0, 0))
-    
-    for index, champion_result in enumerate(most_pick_list):
-
-        if index == 5:
-            break
-
-        champion, games, win, lose, win_rate = champion_result
-        if champion is None:
-            continue
-        champion_profile_image = get_champion_profile_image(champion)
-
-        result_text_color = 'red' if win_rate >= 60.0 else 'blue' if win_rate <= 40.0 else 'gray'
-        result_textbox = get_textbox(x=550, y=100, text=f'{games}전 {win}승 {lose}패 ({win_rate}%)', font_path=font_paths["cookierun"], font_color=result_text_color)
-
-        most_pick_image.paste(result_textbox, (150, 170 * index + 150))
-
-        most_pick_image.paste(champion_profile_image, (0, 170 * index + 150))
-
-    return most_pick_image.resize((420, 600), Image.Resampling.LANCZOS)
-
-
-# 모스트 픽 top 5 나열
-def get_most_banned_images(member, season_name):
-
-    most_x = 500
-    most_y = 1000
-
-    most_banned_image = Image.new('RGB', (most_x, most_y), 'skyblue')
-
-    banned_by_lane_result = get_banned_champions_by_position(member, season_name)
-
-    banned_dict = {}
-
-    for row in banned_by_lane_result:
-        position_eng, champion, ban_count, _ = row
-
-        if ban_count == 0:
-            continue
-        
-        champion_per_line = champions_per_line[position_eng]
-
-        if champion == "Total Games":
-            continue
-        else:
-            if champion in champion_per_line:
-                if champion in banned_dict:
-                    banned_dict[champion] += ban_count
-                else:
-                    banned_dict[champion] = ban_count
-    
-    def get_top_5_banned(ban_dict):
-        count = min(len(ban_dict), 5)
-        # value를 기준으로 내림차순 정렬한 후 상위 5개만 선택
-        sorted_items = sorted(ban_dict.items(), key=lambda x: x[1], reverse=True)
-        return dict(sorted_items[:count])
-    
-    banned_list = get_top_5_banned(banned_dict)
-
-    title_text = get_textbox(500, 100, text='MOST BANNED', font_path=font_paths["pyeongchang"], max_font_size=50, padding=10, font_color='black')
-
-    most_banned_image.paste(title_text, (0, 0))
-    
-    for index, (champion, ban_count) in enumerate(banned_list.items()):
-
-        champion_profile_image = get_champion_profile_image(champion)
-
-        most_banned_image.paste(champion_profile_image, (0, 170 * index + 150))
-        
-        ban_count_textbox = get_textbox(x=350, y=100, text=f'{ban_count}회', font_path=font_paths["cookierun"], max_font_size=50, font_color='black')
-
-        most_banned_image.paste(ban_count_textbox, (150, 170 * index + 150))
-
-    return most_banned_image.resize((300, 600), Image.Resampling.LANCZOS)
-
-
-def get_lane_logo(line, primary=False):
-
-    # ✅ 원본 이미지 불러오기 (RGBA 모드 유지)
-    line_logo_image = Image.open(f'assets/line_icons/{line}_{"primary" if primary else "normal"}.png').convert("RGBA").resize((100, 100), Image.Resampling.LANCZOS)
-
-    # ✅ 새로운 배경 생성 (예: skyblue)
-    background = Image.new("RGBA", (100, 100), "skyblue")
-
-    # ✅ 투명한 부분을 skyblue로 채운 이미지 생성
-    background.paste(line_logo_image, (0, 0), line_logo_image)
-
-    return background
-
-
-# 라인별 승률 나열
-def get_most_selected_lane(member, season_name):
-
-    lane_x = 700
-    lane_y = 1000
-
-    lane_record_image = Image.new('RGB', (lane_x, lane_y), 'skyblue')
-
-    title_text = get_textbox(700, 100, text='라인별 승률', font_path=font_paths["pyeongchang"], max_font_size=50, padding=10, font_color='black')
-
-    lane_record_image.paste(title_text, (0, 0))
-
-    line_record = get_linewise_game_stats(member, season_name) # (라인 이름(영어), 총 게임 수, 승, 패, 승률)
-
-    def get_record_by_lane(line, games, win, lose, win_rate, primary=False):
-
-        record_image = Image.new('RGB', (700, 140), 'skyblue')
-        line_image = get_lane_logo(line, primary=primary)
-
-        line_kor = {
-            "top": "탑",
-            "jungle": "정글",
-            "mid": "미드",
-            "bot": "원딜",
-            "support": "서포터"
-        }
-
-        line_name_textbox = get_textbox(x=100, y=40, text=line_kor.get(line, "없음"), font_path=font_paths["ownglyph"], max_font_size=40, min_font_size=40, padding=5, font_color='black')
-        record_text = f"{games}전 {win}승 {lose}패 ({win_rate}%)"
-
-        record_text_color = 'red' if win_rate >= 60.0 else 'blue' if win_rate <= 40.0 else 'gray'
-        record_textbox = get_textbox(550, 100, record_text, font_paths["cookierun"], font_color=record_text_color)
-
-        record_image.paste(line_image, (0, 0))
-        record_image.paste(line_name_textbox, (0, 100))
-        record_image.paste(record_textbox, (150, 0))
-
-        return record_image
-        
-
-    for index, record in enumerate(line_record):
-        line, games, win, lose, win_rate = record
-
-        primary = True if index == 0 else False
-
-        lane_image = get_record_by_lane(line, games, win, lose, win_rate, primary)
-        lane_record_image.paste(lane_image, (0, 170 * index + 150))
-
-    return lane_record_image.resize((420, 600), Image.Resampling.LANCZOS)
-
-
-# 최근 전적 나열 (최근 10개 게임?)
-def get_lastly_played_game_result(member, season_name: str):
-
-    recent_result_image = Image.new('RGB', (premium_image_w, 200), 'skyblue')
-
-    recent_x = 60
-    recent_y = 80
-
-
-    recent_result = get_recent_champion_history(member.id, season_name)
-
-    def get_result_per_champion(match_id: int, game_index: int, champion_eng: str, line: str, is_win: bool):
-
-        result_per_champion_image = Image.new('RGB', (recent_x, recent_y), 'skyblue')
-
-        draw = ImageDraw.Draw(result_per_champion_image)
-
-        game_info_textbox = get_textbox(recent_x, recent_y // 4, f"#{match_id}({game_index})", font_paths['cookierun'], font_color='gray')
-
-        champion_image = Image.open(f"assets/champion_square/{champion_eng}.png").resize((recent_x, recent_y * 3 // 4), Image.Resampling.LANCZOS)
-
-        result_per_champion_image.paste(game_info_textbox, (0, 0))
-        result_per_champion_image.paste(champion_image, (0, recent_y // 4))
-
-        result_text = f"{'W' if is_win else 'L'}"
-        result_font = ImageFont.truetype(font_paths['cookierun'], 25)
-
-        bbox = draw.textbbox((0, 0), result_text, font=result_font)
-        
-        # 텍스트 실제 너비와 높이 계산
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-
-        result_x = (recent_x - text_width) / 2
-        result_y = (recent_y - text_height)
-        draw.text((result_x, result_y - recent_y // 10), result_text, fill=f"{'gold' if is_win else 'silver'}", font=result_font)
-
-        return result_per_champion_image
-
-    recent_textbox = get_textbox(recent_x * 4, recent_y, f"최근 전적 : ", font_paths["cookierun"], font_color='black')
-
-    recent_result_image.paste(recent_textbox, (0, 0))
-
-    count = 0
-
-    for index, (match_id, game_index, champion_eng, line, result) in enumerate(recent_result):
-
-        if count >= 20:
-            break
-
-        is_win = True if result == "승리" else False
-
-        if champion_eng is None or champion_eng == "" or champion_eng == "None":
-            continue
-
-        recent_result_image.paste(get_result_per_champion(match_id, game_index, champion_eng, line, is_win), (recent_x * 4 + recent_x * count, 0))
-
-        count += 1
-
-    return recent_result_image
+    return nickname_textbox_image

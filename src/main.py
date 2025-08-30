@@ -6,7 +6,7 @@ import io
 from dotenv import load_dotenv
 from discord.ext import commands
 from bot import bot
-from lolpark_premium import get_premium_record, get_summarized_record_text
+from lolpark_premium import get_lolpark_premium_profile, get_premium_record, get_summarized_record_text
 
 # os path 설정
 def _setup_imports():
@@ -79,19 +79,19 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     
     # 공개 채널
     if interaction.channel.id == record_search_channel_public_id:
-        if get_match_played(interaction.user, lolpark_season) >= 30:
+        if get_match_played(interaction.user, lolpark_season) >= 30 or get_match_played(interaction.user, None) >= 100 and member.id == interaction.user.id:
             await send_premium_profile()
         else:
             await send_standard_profile()
     
     # 비공개 채널
     if interaction.channel.id == record_search_channel_private_id:
-        if get_match_played(interaction.user, lolpark_season) >= 30:
+        if get_match_played(interaction.user, lolpark_season) >= 30 or get_match_played(interaction.user, None) >= 100:
             await send_premium_profile()
         else:
             await interaction.followup.send(
                 content=(
-                    "현 시즌 30판 이상 플레이한 유저만 개인용 전적을 조회할 수 있습니다."
+                    "현 시즌 30판 이상 혹은 통산 100판 이상 플레이한 유저만 개인용 전적을 조회할 수 있습니다."
                 ),
                 ephemeral=True
             )
@@ -111,7 +111,7 @@ async def apply(interaction: discord.Interaction, member: discord.Member = None)
             f'<#1287074399689904190> 에서 신청해주시길 바랍니다.'
         ),
         ephemeral=True
-    ) 
+    )
 
     channel_id = await apply_tier_adjust(interaction=interaction, member=member)
     await interaction.followup.send(
@@ -154,24 +154,20 @@ async def 테스트(ctx):
     return
 
 
-@bot.tree.command()
-async def 최근전적(interaction: discord.Interaction):
+@bot.command()
+async def 짠(ctx):
 
-    await interaction.response.send_message(
-        content="준비 중입니다.",
-        ephemeral=True
-    )
-    return
+    guild = ctx.guild
+    member = guild.get_member(333804390332760064)
 
-    from last_record import get_personal_game_result_image
-
-    result_image = get_personal_game_result_image(interaction)
-
+    profile_image = await get_lolpark_premium_profile(member, "통산")
     buffer = io.BytesIO()
-    result_image.save(buffer, format='PNG')
+    profile_image.save(buffer, format='PNG')
     buffer.seek(0)
-
-    await interaction.channel.send(file=discord.File(buffer, filename=f"test.png"))
+    await ctx.send(
+        file=discord.File(buffer, filename=f"asfasfae.png")
+    )
+    
 
 
 # 명령어 에러 처리
