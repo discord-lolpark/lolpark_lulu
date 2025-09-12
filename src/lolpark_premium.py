@@ -20,7 +20,7 @@ asset_dir = "assets"
 w = 1920
 h = 1080
 profile_image_size = (160, 160)
-champion_image_size = 64
+champion_image_size = 88
 
 
 async def get_lolpark_premium_profile(member: discord.Member, season_name: str):
@@ -29,22 +29,12 @@ async def get_lolpark_premium_profile(member: discord.Member, season_name: str):
     draw = ImageDraw.Draw(profile_image)
 
     # 배경 이미지
-    background_image = Image.open(f"{asset_dir}/lolpark_images/loading_background.png").convert("RGBA")
+    background_image = Image.open(f"{asset_dir}/lolpark_images/record_background.png").convert("RGBA")
     profile_image.paste(background_image, (0, 0))
-
-    # 반투명 배경 박스
-    transparent_box = get_transparent_image(int(w * 0.9), int(h * 0.85), darkness=100)
-    profile_image.paste(transparent_box, ((w - transparent_box.width) // 2, (h - transparent_box.height) // 2 + 30) , transparent_box)
-
-    # 전적 박스 텍스트
-    title_box = Image.new('RGBA', (400, 90), "#0F0E0E")
-    profile_image.paste(title_box, (0, 70), title_box)
-    title_textbox = get_textbox_image("통산 전적", 370, 90, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/riasans.ttf")
-    profile_image.paste(title_textbox, (20, 70), title_textbox)
 
     # 시즌 텍스트
     draw.text(
-        xy=(420, 70),
+        xy=(370, 50),
         text=f"[ {season_name} ]",
         font=ImageFont.truetype(f"{asset_dir}/fonts/NotoSansKR.ttf", 25),
         fill="#252121"
@@ -52,14 +42,10 @@ async def get_lolpark_premium_profile(member: discord.Member, season_name: str):
 
     #### 멤버 프로필 ####
 
-    # 멤버 프로필 반투명 박스
-    member_profile_transparent_box = make_rounded(Image.new('RGBA', (560, 320), color="#302D2D"), radius=80)
-    profile_image.paste(member_profile_transparent_box, (180, 150), member_profile_transparent_box)
-
     # 멤버 프로필 이미지
     member_profile_image = make_rounded(await get_profile_image(member), radius=20)
     member_profile_image = member_profile_image.resize(profile_image_size, Image.LANCZOS)
-    profile_image.paste(member_profile_image, (260, 200), member_profile_image)
+    profile_image.paste(member_profile_image, (180, 160), member_profile_image)
 
     # 멤버 티어 정보
     tier_initial, tier_score = get_user_tier_part(member)
@@ -77,21 +63,17 @@ async def get_lolpark_premium_profile(member: discord.Member, season_name: str):
         "unranked"
 
     member_tier_image = Image.open(f"{asset_dir}/tier_image/icon/{tier}.png").convert("RGBA").resize((160, 160), Image.LANCZOS)
-    profile_image.paste(member_tier_image, (500, 170), member_tier_image)
+    profile_image.paste(member_tier_image, (380, 130), member_tier_image)
     tier_text = "[" + tier_initial.upper() + str(tier_score) + "]"
     tier_textbox = get_textbox_image(tier_text, 160, 60, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
-    profile_image.paste(tier_textbox, (500, 300), tier_textbox)
+    profile_image.paste(tier_textbox, (380, 260), tier_textbox)
 
     # 멤버 닉네임
-    nickname = get_nickname(member)
-    nickname_textbox = get_nickname_textbox_image(nickname, 500, 120, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
-    profile_image.paste(nickname_textbox, (210, 360), nickname_textbox)
+    nickname = get_nickname(member, only_nickname=True)
+    nickname_textbox = get_nickname_textbox_image(nickname, 380, 120, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
+    profile_image.paste(nickname_textbox, (170, 300), nickname_textbox)
 
-    # 전체 내전 전적 박스 텍스트
-    total_box = Image.new('RGBA', (300, 60), "#0F0E0E")
-    profile_image.paste(total_box, (200, 500), total_box)
-    total_textbox = get_textbox_image("전체 내전 전적", total_box.width, total_box.height, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
-    profile_image.paste(total_textbox, (200, 500), total_textbox)
+    left_start_x = 160
 
     # 전체 내전 전적
     stat_dict = get_summoner_stats(member, season_name=season_name)
@@ -100,24 +82,18 @@ async def get_lolpark_premium_profile(member: discord.Member, season_name: str):
     total_lose = stat_dict["loses"]
     total_winrate = stat_dict["win_rate"]
     total_record_text = f'{total_games}전 {total_win}승 {total_lose}패 ( {total_winrate}% )'
-    total_record_textbox = get_textbox_image(total_record_text, 600, 55, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
-    profile_image.paste(total_record_textbox, (200, 570), total_record_textbox)
-
-    # 최근 전적 박스 텍스트
-    recent_box = Image.new('RGBA', (250, 60), "#0F0E0E")
-    profile_image.paste(recent_box, (200, 660), recent_box)
-    recent_textbox = get_textbox_image("최근 전적", recent_box.width, recent_box.height, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
-    profile_image.paste(recent_textbox, (200, 660), recent_textbox)
+    total_record_textbox = get_textbox_image(total_record_text, 550, 55, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
+    profile_image.paste(total_record_textbox, (140, 515), total_record_textbox)
 
     # 최근 전적
-    recent_result = get_recent_champion_history(member.id, season_name)
+    recent_result = get_recent_champion_history(member.id, season_name, limit=15)
     
     recent_win_count = 0
     recent_lose_count = 0
 
     for index, game_info in enumerate(recent_result):
         
-        row_count = 10
+        row_count = 5
 
         match_id = game_info[0]
         game_index = game_info[1]
@@ -125,27 +101,36 @@ async def get_lolpark_premium_profile(member: discord.Member, season_name: str):
         is_win = True if game_info[4] == "승리" else False
 
 
-        game_info_textbox_height = 20
+        game_info_textbox_height = 40
 
         champion_image = Image.open(f"{asset_dir}/champion_square/{champion_name_eng}.png").convert("RGBA").resize((champion_image_size, champion_image_size), Image.LANCZOS)
 
-        game_info_textbox = get_textbox_image(f"#{match_id}({game_index})", champion_image_size, game_info_textbox_height, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
+        game_info_textbox = get_textbox_image(f"#{match_id}({game_index})", champion_image_size, game_info_textbox_height, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/NotoHans.ttf")
 
-        profile_image.paste(champion_image, (200 + (index % row_count) * champion_image_size, 730 + (index // row_count) * (champion_image_size + game_info_textbox_height) + game_info_textbox_height), champion_image)
-        profile_image.paste(game_info_textbox, (200 + (index % row_count) * champion_image_size, 730 + (index // row_count) * (champion_image_size + game_info_textbox_height)), game_info_textbox)
-        draw.text(
-            xy =(200 + (index % row_count) * champion_image_size + 24, 730 + (index // row_count + 1) * (champion_image_size + game_info_textbox_height) - 25),
-            text="W" if is_win else "L",
-            font=ImageFont.truetype(f"{asset_dir}/fonts/nanumgothic.ttf", 20),
-            fill="#FFE927" if is_win else "#867E7E"
-        )
+        profile_image.paste(champion_image, (left_start_x + (index % row_count) * champion_image_size, 645 + (index // row_count) * (champion_image_size + game_info_textbox_height) + game_info_textbox_height), champion_image)
+        profile_image.paste(game_info_textbox, (left_start_x + (index % row_count) * champion_image_size, 645 + (index // row_count) * (champion_image_size + game_info_textbox_height)), game_info_textbox)
+        if is_win:
+            draw.text(
+                xy =(left_start_x + (index % row_count) * champion_image_size + 29, 645 + (index // row_count + 1) * (champion_image_size + game_info_textbox_height) - 30),
+                text="W",
+                font=ImageFont.truetype(f"{asset_dir}/fonts/nanumgothic.ttf", 30),
+                fill="#FFE927"
+            )
+        else:
+            draw.text(
+                xy =(left_start_x + (index % row_count) * champion_image_size + 34, 645 + (index // row_count + 1) * (champion_image_size + game_info_textbox_height) - 30),
+                text="L",
+                font=ImageFont.truetype(f"{asset_dir}/fonts/nanumgothic.ttf", 30),
+                fill="#F1EDC7"
+            )
+
 
         recent_win_count += 1 if is_win else 0
         recent_lose_count += 0 if is_win else 1
     
     recent_record_text = f'{recent_win_count + recent_lose_count}전 {recent_win_count}승 {recent_lose_count}패 ( {calculate_win_rate(recent_win_count, recent_lose_count)}% )'
-    recent_record_textbox = get_textbox_image(recent_record_text, 350, 55, font_color="#FFFFFF", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
-    profile_image.paste(recent_record_textbox, (460, 665), recent_record_textbox)
+    recent_record_textbox = get_textbox_image(recent_record_text, 350, 55, font_color="#DBD1D1", font_path=f"{asset_dir}/fonts/nanumgothic.ttf")
+    profile_image.paste(recent_record_textbox, (340, 590), recent_record_textbox)
 
     return profile_image
 
@@ -208,6 +193,18 @@ async def get_premium_record(member: discord.Member):
             self.message = None
             self.member = member
             self.future = future
+            self.other_buttons_count = 0  # row 2 이상에 배치될 버튼 개수 추적
+
+        def get_button_row(self, season):
+            if season == lolpark_season:
+                return 1  # 현재 시즌
+            elif season == "통산":
+                return 0  # 통산
+            else:
+                # 나머지 버튼들을 row 2, 3, 4에 5개씩 분산
+                row = 2 + (self.other_buttons_count // 5)
+                self.other_buttons_count += 1
+                return row
 
         async def on_timeout(self):
             if not self.future.done():
@@ -218,9 +215,10 @@ async def get_premium_record(member: discord.Member):
                 pass
 
     class StatButton(discord.ui.Button):
-        def __init__(self, season, member, future):
+        def __init__(self, season, member, future, view):
             button_style = discord.ButtonStyle.green if season == lolpark_season else discord.ButtonStyle.red if season == "통산" else discord.ButtonStyle.primary
-            super().__init__(label=f"{season} (현재 시즌)" if season == lolpark_season else season, style=button_style, row=1 if season == lolpark_season else 0 if season == "통산" else 2)
+            row = view.get_button_row(season)
+            super().__init__(label=f"{season} (현재 시즌)" if season == lolpark_season else season, style=button_style, row=row)
             self.member = member
             self.season = season
             self.future = future
@@ -238,7 +236,7 @@ async def get_premium_record(member: discord.Member):
     current_season_games = get_summoner_stats(member, lolpark_season)["total_games"]
 
     if current_season_games > 0:
-        stat_view.add_item(StatButton(lolpark_season,  member, result_future))
+        stat_view.add_item(StatButton(lolpark_season, member, result_future, stat_view))
 
     for season_name in season_name_list:
         if season_name == lolpark_season:
@@ -247,13 +245,13 @@ async def get_premium_record(member: discord.Member):
         season_games = get_summoner_stats(member, season_name)["total_games"]
 
         if season_games > 0:
-            stat_view.add_item(StatButton(season_name,  member, result_future))
+            stat_view.add_item(StatButton(season_name, member, result_future, stat_view))
 
     for cup_name in cup_name_list:
         cup_games = get_summoner_stats(member, cup_name)["total_games"]
 
         if cup_games > 0:
-            stat_view.add_item(StatButton(cup_name,  member, result_future))
+            stat_view.add_item(StatButton(cup_name, member, result_future, stat_view))
     
     return stat_view, result_future
 

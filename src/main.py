@@ -56,10 +56,16 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
         buffer = io.BytesIO()
         profile.save(buffer, format='PNG')
         buffer.seek(0)
-        await interaction.followup.send(
-            file=discord.File(buffer, filename=f"{member.id}_profile.png"),
-            ephemeral=interaction.channel_id == record_search_channel_private_id
-        )
+        if interaction.channel_id == record_search_channel_private_id:
+            await interaction.followup.send(
+                file=discord.File(buffer, filename=f"{member.id}_profile.png"),
+                ephemeral=True
+            )
+        else:
+            await interaction.channel.send(
+                file=discord.File(buffer, filename=f"{member.id}_profile.png"),
+                content=f"`{get_nickname(interaction.user)}`님이 조회했습니다."
+            )
         
     # 일반 프로필 생성 및 전송하는 함수
     async def send_standard_profile():
@@ -79,7 +85,7 @@ async def find_record(interaction: discord.Interaction, member: discord.Member =
     
     # 공개 채널
     if interaction.channel.id == record_search_channel_public_id:
-        if get_match_played(interaction.user, lolpark_season) >= 30 or get_match_played(interaction.user, None) >= 100 and member.id == interaction.user.id:
+        if get_match_played(member, lolpark_season) >= 30 or get_match_played(member, None) >= 100:
             await send_premium_profile()
         else:
             await send_standard_profile()
@@ -121,6 +127,15 @@ async def apply(interaction: discord.Interaction, member: discord.Member = None)
         ),
         ephemeral=True
     )
+
+
+@bot.tree.command(name="소환사등록")
+async def enroll_summoner(interaction: discord.Interaction):
+
+    from summoner_add import SummonerModal
+
+    modal = SummonerModal()
+    await interaction.response.send_modal(modal)
 
 
 @bot.command()
